@@ -1,56 +1,38 @@
-# Welcome to your Expo app 👋
+# ReceiptCave Mobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+iOS and Android app for ExpenseTracker / ReceiptCave, built with Expo (SDK 57) and Expo Router.
+It signs in with the same Auth0 tenant as the web client and calls the existing ExpenseTrackerAPI.
 
-## Get started
+## Setup
 
-1. Install dependencies
-
+1. Install dependencies:
    ```bash
    npm install
    ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
+2. Copy `.env.example` to `.env.local` and set `EXPO_PUBLIC_AUTH0_CLIENT_ID` to the Auth0 **Native** application's client ID.
+3. In the Auth0 dashboard, add both of these to the Native application's **Allowed Callback URLs** and **Allowed Logout URLs**:
+   ```
+   com.receiptcave.app.auth0://dev-sizppb5m3zuup43h.us.auth0.com/ios/com.receiptcave.app/callback
+   com.receiptcave.app.auth0://dev-sizppb5m3zuup43h.us.auth0.com/android/com.receiptcave.app/callback
    ```
 
-In the output, you'll find options to open the app in a
+## Running
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+`react-native-auth0` contains native code, so the app does **not** run in Expo Go — it needs a development build.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- **Android (local):** install Android Studio with an emulator, then `npx expo run:android`.
+- **iOS / Android (cloud):** `npx eas-cli build --profile development --platform ios` (iOS device installs need an Apple Developer account).
 
-## Get a fresh project
+Once a development build is installed, start the bundler with `npm start`.
 
-When you're ready, run:
+## Project structure
 
-```bash
-npm run reset-project
 ```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-### Other setup steps
-
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+src/
+  app/        Routes only (Expo Router). Each file re-exports a screen from features/.
+  features/   Screens and feature-specific components.
+  core/       Non-UI code: auth config, API client, services, models.
+  shared/     Reusable UI components.
+  theme/      Recave design tokens, mirrored from the web client's styles.css.
+  config/     Environment variables.
+```
