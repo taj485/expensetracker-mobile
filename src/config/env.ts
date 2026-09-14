@@ -14,4 +14,6 @@ export const env = {
     clientId: required('EXPO_PUBLIC_AUTH0_CLIENT_ID', process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID),
     audience: required('EXPO_PUBLIC_AUTH0_AUDIENCE', process.env.EXPO_PUBLIC_AUTH0_AUDIENCE),
   },
+  // Optional: without it merchant logos fall back to initials.
+  logoDevToken: process.env.EXPO_PUBLIC_LOGO_DEV_TOKEN ?? null,
 };
