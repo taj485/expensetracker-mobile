@@ -18,6 +18,9 @@ export interface ReceiptGroup {
   date: string;
   receiptId: number | null;
   total: number;
+  /** Who added the receipt (every line of a scanned receipt is added together, by one person). */
+  createdByEmail: string | null;
+  createdByCurrentUser: boolean;
   expenses: Expense[];
 }
 
@@ -48,6 +51,9 @@ export function groupByReceipt(expenses: Expense[]): ReceiptGroup[] {
         date: first.date,
         receiptId: first.receiptId,
         total: sumExpenses(items),
+        // `?? null` / `=== true`: an API deployed before uploaders existed omits these fields.
+        createdByEmail: first.createdByEmail ?? null,
+        createdByCurrentUser: first.createdByCurrentUser === true,
         expenses: items,
       };
     })

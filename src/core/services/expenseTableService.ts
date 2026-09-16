@@ -1,5 +1,10 @@
 import type { ApiClient } from '@/core/api/apiClient';
-import type { CreateExpenseTableCommand, ExpenseTable } from '@/core/models/expense-table.model';
+import type {
+  CreateExpenseTableCommand,
+  ExpenseTable,
+  ExpenseTableMember,
+  InviteUserToTableCommand,
+} from '@/core/models/expense-table.model';
 
 // Expense tables are called "spaces" in the UI.
 
@@ -21,4 +26,19 @@ export function starTable(api: ApiClient, tableId: number): Promise<void> {
 // API CALL: DELETE /api/expensetable/{id}/star — unstars a table
 export function unstarTable(api: ApiClient, tableId: number): Promise<void> {
   return api.delete<void>(`/expensetable/${tableId}/star`);
+}
+
+// API CALL: GET /api/expensetable/{id}/members — lists the table's members (admins first, then by email)
+export function getMembers(api: ApiClient, tableId: number): Promise<ExpenseTableMember[]> {
+  return api.get<ExpenseTableMember[]>(`/expensetable/${tableId}/members`);
+}
+
+// API CALL: POST /api/expensetable/{id}/members — invites an existing user (by email) onto the table
+export function inviteMember(api: ApiClient, command: InviteUserToTableCommand): Promise<void> {
+  return api.post<void>(`/expensetable/${command.expenseTableId}/members`, command);
+}
+
+// API CALL: DELETE /api/expensetable/{id} — deletes a table and every expense in it
+export function deleteTable(api: ApiClient, tableId: number): Promise<void> {
+  return api.delete<void>(`/expensetable/${tableId}`);
 }

@@ -1,8 +1,7 @@
-import { Stack, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { Stack, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useMemo } from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 
-import type { ExpenseCategory } from '@/core/models/expense.model';
 import { useSpaceExpenses } from '@/core/queries/expenseQueries';
 import { useToggleStar } from '@/core/queries/spaceQueries';
 import { useSelectedSpace } from '@/core/spaces/SelectedSpaceProvider';
@@ -14,59 +13,73 @@ import { StatTile } from '@/shared/components/StatTile';
 import { TAB_BAR_CLEARANCE } from '@/shared/components/tab-bar/constants';
 import { spacing, useTheme } from '@/theme';
 
-import { ExpensesToolbar } from './components/ExpensesToolbar';
+import { CategoryChips } from './components/CategoryChips';
 import { MonthChips } from './components/MonthChips';
 import { ReceiptCard } from './components/ReceiptCard';
+import { SpaceHeaderActions } from './components/SpaceHeaderActions';
+import {
+  type ExpenseFilterParams,
+  type ExpenseFilters,
+  parseExpenseFilters,
+  toExpenseFilterParams,
+  toggleCategory,
+} from './expenseFilters';
 
 const MONTHS_SHOWN = 5;
 
 export function ExpensesScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const { colors } = useTheme();
-  const { spaces, selectedSpace, selectSpace, isLoading: spacesLoading, error: spacesError, refetch } = useSelectedSpace();
+  const { spaces, selectedSpace, isLoading: spacesLoading, error: spacesError, refetch } = useSelectedSpace();
   const expensesQuery = useSpaceExpenses(selectedSpace?.id ?? null);
   const toggleStar = useToggleStar();
 
-  const [month, setMonth] = useState<string | null>(null);
-  const [category, setCategory] = useState<ExpenseCategory | null>(null);
+  // Filters come from the URL, so Home's cards (and deep links) can open a filtered list.
+  // Every value is validated by parseExpenseFilters, so the cast only names the expected keys.
+  const params = useLocalSearchParams() as ExpenseFilterParams;
+  const { month, categories } = parseExpenseFilters(params, selectedSpace?.id);
+  const setFilter = (patch: Partial<ExpenseFilters>) => {
+    if (!selectedSpace) return;
+    // This screen's own navigation object, not router.setParams: with tabs, router.setParams can
+    // update whichever route the router considers current (e.g. Home) instead of this one.
+    navigation.setParams(toExpenseFilterParams(selectedSpace.id, { month, categories, ...patch }) as never);
+  };
+  // Stable key for memoising on the selection (the parsed array is new every render).
+  const categoryKey = categories.join(',');
 
   const filtered = useMemo(
-    () =>
-      (expensesQuery.data ?? []).filter(
-        e => (!month || monthKeyOf(e.date) === month) && (!category || e.category === category),
-      ),
-    [expensesQuery.data, month, category],
+    () => {
+      const wanted = categoryKey ? categoryKey.split(',') : [];
+      return (expensesQuery.data ?? []).filter(
+        e => (!month || monthKeyOf(e.date) === month) && (wanted.length === 0 || wanted.includes(e.category)),
+      );
+    },
+    [expensesQuery.data, month, categoryKey],
   );
   const receipts = useMemo(() => groupByReceipt(filtered), [filtered]);
   const monthKeys = useMemo(() => monthKeysBack(MONTHS_SHOWN), []);
 
-  const onSelectSpace = (spaceId: number) => {
-    selectSpace(spaceId);
-    setMonth(null);
-    setCategory(null);
+  const retry = () => {
+    refetch();
+    // refetch() ignores `enabled`, so only call it once there is a space to load.
+    if (selectedSpace) expensesQuery.refetch();
   };
 
   if (spacesLoading || expensesQuery.isLoading) return <LoadingState />;
   if (spacesError || expensesQuery.error) {
-    return <ErrorState message="Couldn't load expenses. Please try again." onRetry={() => { refetch(); expensesQuery.refetch(); }} />;
+    return <ErrorState message="Couldn't load expenses. Please try again." onRetry={retry} />;
   }
   if (!selectedSpace) {
-    return <EmptyState title="No spaces yet" message="Create a space on the web app to start tracking." />;
+    return <EmptyState title="No spaces yet" message="Create a space to start tracking." />;
   }
 
   const spaceId = selectedSpace.id;
+  const spaceParams = { spaceId: String(spaceId) };
 
   return (
     <>
       <Stack.Screen options={{ title: selectedSpace.name }} />
-      <ExpensesToolbar
-        spaces={spaces}
-        selectedSpace={selectedSpace}
-        onSelectSpace={onSelectSpace}
-        onToggleStar={() => toggleStar.mutate(selectedSpace)}
-        category={category}
-        onSelectCategory={setCategory}
-      />
 
       <FlatList
         data={receipts}
@@ -84,7 +97,20 @@ export function ExpensesScreen() {
         }
         ListHeaderComponent={
           <View style={styles.header}>
-            <MonthChips monthKeys={monthKeys} selected={month} onSelect={setMonth} />
+            <SpaceHeaderActions
+              space={selectedSpace}
+              canToggleStar={spaces.length > 1}
+              onToggleStar={() => toggleStar.mutate(selectedSpace)}
+              onMembers={() => router.push({ pathname: '/space-members', params: spaceParams })}
+              onShare={() => router.push({ pathname: '/share-space', params: spaceParams })}
+              onSettings={() => router.push({ pathname: '/space-settings', params: spaceParams })}
+            />
+            <MonthChips monthKeys={monthKeys} selected={month} onSelect={value => setFilter({ month: value })} />
+            <CategoryChips
+              selected={categories}
+              onToggle={category => setFilter({ categories: toggleCategory(categories, category) })}
+              onClear={() => setFilter({ categories: [] })}
+            />
             <View style={styles.stats}>
               <StatTile label={month ? 'Month total' : 'Total'} value={formatMoney(sumExpenses(filtered))} highlight />
               <StatTile label="Entries" value={String(filtered.length)} />
@@ -92,8 +118,8 @@ export function ExpensesScreen() {
           </View>
         }
         ListEmptyComponent={
-          month || category ? (
-            <EmptyState title="No matching expenses" message="Try another month or category." />
+          month || categories.length > 0 ? (
+            <EmptyState title="No matching expenses" message="Try another month or more categories." />
           ) : (
             <EmptyState title="No expenses yet" message="Scan a receipt or add an expense to get started." />
           )
@@ -101,6 +127,16 @@ export function ExpensesScreen() {
         renderItem={({ item }) => (
           <ReceiptCard
             receipt={item}
+            showUploader={selectedSpace.memberCount > 1}
+            onPressHeader={() =>
+              router.push({
+                pathname: '/expenses/receipt-edit',
+                params:
+                  item.receiptId != null
+                    ? { spaceId: String(spaceId), receiptId: String(item.receiptId) }
+                    : { spaceId: String(spaceId), expenseId: String(item.expenses[0].id) },
+              })
+            }
             onPressExpense={expenseId =>
               router.push({
                 pathname: '/expenses/[expenseId]',

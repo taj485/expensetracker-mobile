@@ -4,29 +4,31 @@ import type { ComponentType } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AddIcon, ExpensesIcon, HomeIcon, type IconProps, ProfileIcon } from '@/shared/icons/AppIcons';
+import { useSpacesSidebar } from '@/features/spaces/SpacesSidebarProvider';
+import { AddIcon, ExpensesIcon, HomeIcon, type IconProps, SpacesIcon } from '@/shared/icons/AppIcons';
 import { spacing, type Theme, useThemedStyles } from '@/theme';
 
 import { ScanTabButton } from './ScanTabButton';
 import { TabBarItem } from './TabBarItem';
 
 // Route names of the tab folders in src/app/(app)/(tabs). Home is a group so it lives at "/".
-type TabRouteName = '(home)' | 'expenses' | 'profile';
+// Profile is still a tab route, but it's reached from the spaces sidebar rather than the bar.
+type TabRouteName = '(home)' | 'expenses';
 
 const TABS: Record<TabRouteName, { label: string; Icon: ComponentType<IconProps> }> = {
   '(home)': { label: 'Home', Icon: HomeIcon },
   expenses: { label: 'Expenses', Icon: ExpensesIcon },
-  profile: { label: 'Profile', Icon: ProfileIcon },
 };
 
 /**
- * Custom tab bar from the Recave mockup: Home · Expenses · [Scan] · Add · Profile.
- * Scan and Add are actions that open sheets; the other three switch tabs.
+ * Custom tab bar from the Recave mockup: Home · Expenses · [Scan] · Add · Spaces.
+ * Scan and Add open sheets and Spaces opens the space-switcher sidebar; the others switch tabs.
  */
 export function AppTabBar({ state, navigation }: BottomTabBarProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const styles = useThemedStyles(createStyles);
+  const spacesSidebar = useSpacesSidebar();
 
   const renderTab = (name: TabRouteName) => {
     const index = state.routes.findIndex(route => route.name === name);
@@ -57,7 +59,7 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
       {renderTab('expenses')}
       <ScanTabButton onPress={() => router.push('/scan')} />
       <TabBarItem label="Add" Icon={AddIcon} onPress={() => router.push('/add-expense')} />
-      {renderTab('profile')}
+      <TabBarItem label="Spaces" Icon={SpacesIcon} onPress={spacesSidebar.open} />
     </View>
   );
 }

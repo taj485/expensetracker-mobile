@@ -1,12 +1,13 @@
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useAuth0 } from 'react-native-auth0';
 
+import { useSession } from '@/core/auth/useSession';
 import { useSpaceExpenses } from '@/core/queries/expenseQueries';
 import { useSelectedSpace } from '@/core/spaces/SelectedSpaceProvider';
 import { currentMonthKey } from '@/core/utils/dateUtils';
 import { categoryBreakdown, expensesInMonth, summariseMonth } from '@/core/utils/spendingUtils';
+import { type ExpenseFilters, toExpenseFilterParams } from '@/features/expenses/expenseFilters';
 import { AppText } from '@/shared/components/AppText';
 import { EmptyState, ErrorState, LoadingState } from '@/shared/components/QueryState';
 import { ScrollScreen } from '@/shared/components/Screen';
@@ -21,7 +22,7 @@ import { QuickAction } from './components/QuickAction';
 
 export function HomeScreen() {
   const router = useRouter();
-  const { user } = useAuth0();
+  const { user } = useSession();
   const { selectedSpace, isLoading: spacesLoading, error: spacesError, refetch: refetchSpaces } = useSelectedSpace();
   const expensesQuery = useSpaceExpenses(selectedSpace?.id ?? null);
 
@@ -35,7 +36,8 @@ export function HomeScreen() {
 
   const refresh = () => {
     refetchSpaces();
-    expensesQuery.refetch();
+    // refetch() ignores `enabled`, so only call it once there is a space to load.
+    if (selectedSpace) expensesQuery.refetch();
   };
 
   const renderBody = () => {
@@ -47,17 +49,25 @@ export function HomeScreen() {
       return <EmptyState title="No spaces yet" message="Create a space on the web app to start tracking." />;
     }
 
+    // Switches to the Expenses tab with filters in its URL (see features/expenses/expenseFilters).
+    const openExpenses = (filters: ExpenseFilters) =>
+      router.navigate({ pathname: '/expenses', params: toExpenseFilterParams(selectedSpace.id, filters) });
+
     return (
       <>
         <AppText variant="footnote" tone="secondary" style={styles.spaceName} numberOfLines={1}>
           {selectedSpace.name}
         </AppText>
-        <BalanceCard monthKey={monthKey} summary={summary} />
+        <BalanceCard
+          monthKey={monthKey}
+          summary={summary}
+          onPress={() => openExpenses({ month: monthKey, categories: [] })}
+        />
 
         <View style={styles.quickRow}>
           <QuickAction label="Scan" Icon={ScanIcon} onPress={() => router.push('/scan')} />
           <QuickAction label="Add" Icon={AddIcon} onPress={() => router.push('/add-expense')} />
-          <QuickAction label="Expenses" Icon={ExpensesIcon} onPress={() => router.navigate('/expenses')} />
+          <QuickAction label="Expenses" Icon={ExpensesIcon} onPress={() => openExpenses({ month: null, categories: [] })} />
         </View>
 
         <SectionHeader title="Spending by category" />
@@ -66,7 +76,11 @@ export function HomeScreen() {
         ) : (
           <View style={styles.categoryList}>
             {categories.map(spend => (
-              <CategoryRow key={spend.category} spend={spend} />
+              <CategoryRow
+                key={spend.category}
+                spend={spend}
+                onPress={() => openExpenses({ month: monthKey, categories: [spend.category] })}
+              />
             ))}
           </View>
         )}

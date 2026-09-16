@@ -10,7 +10,11 @@ export function useSpaceExpenses(spaceId: number | null) {
   const api = useApiClient();
   return useQuery({
     queryKey: queryKeys.expenses(spaceId ?? 0),
-    queryFn: () => getExpenses(api, spaceId!),
+    queryFn: () => {
+      // Guards a manual refetch(), which runs even while the query is disabled.
+      if (spaceId == null) throw new Error('No space selected');
+      return getExpenses(api, spaceId);
+    },
     enabled: spaceId != null,
   });
 }

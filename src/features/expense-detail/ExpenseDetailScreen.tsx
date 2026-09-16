@@ -1,4 +1,4 @@
-import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { setStatusBarStyle } from 'expo-status-bar';
 import { useCallback } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
@@ -8,12 +8,14 @@ import { useDeleteExpense, useExpense } from '@/core/queries/expenseQueries';
 import { useSelectedSpace } from '@/core/spaces/SelectedSpaceProvider';
 import { formatMediumDate } from '@/core/utils/dateUtils';
 import { formatMoney } from '@/core/utils/moneyUtils';
+import { uploaderLabel } from '@/core/utils/uploaderUtils';
 import { ErrorState, LoadingState } from '@/shared/components/QueryState';
 import { KeyValueList } from '@/shared/components/KeyValueList';
 import { TAB_BAR_CLEARANCE } from '@/shared/components/tab-bar/constants';
 import { spacing, useTheme } from '@/theme';
 
 import { DetailHero } from './components/DetailHero';
+import { ExpenseActionsMenu } from './components/ExpenseActionsMenu';
 
 /** Height of the iOS navigation bar the hero sits under. */
 const NAV_BAR_HEIGHT = 44;
@@ -57,17 +59,14 @@ export function ExpenseDetailScreen() {
   if (isLoading) return <LoadingState />;
   if (error || !expense) return <ErrorState message="Couldn't load this expense." onRetry={() => refetch()} />;
 
-  const spaceName = spaces.find(s => s.id === spaceId)?.name;
+  const space = spaces.find(s => s.id === spaceId);
+  const spaceName = space?.name;
+  // Only worth showing in shared spaces; in a personal space every expense is yours.
+  const addedBy = space && space.memberCount > 1 ? uploaderLabel(expense, 'full') : null;
 
   return (
     <>
-      <Stack.Toolbar placement="right">
-        <Stack.Toolbar.Menu icon="ellipsis" accessibilityLabel="Expense actions" tintColor="#FFFFFF">
-          <Stack.Toolbar.MenuAction icon="trash" destructive onPress={confirmDelete}>
-            Delete Expense
-          </Stack.Toolbar.MenuAction>
-        </Stack.Toolbar.Menu>
-      </Stack.Toolbar>
+      <ExpenseActionsMenu onDelete={confirmDelete} />
 
       <ScrollView
         // The hero draws under the transparent navigation bar, so manage the top inset ourselves.
@@ -84,6 +83,7 @@ export function ExpenseDetailScreen() {
               { label: 'Unit price', value: formatMoney(expense.unitPrice) },
               { label: 'Quantity', value: String(expense.quantity) },
               ...(spaceName ? [{ label: 'Space', value: spaceName }] : []),
+              ...(addedBy ? [{ label: 'Added by', value: addedBy }] : []),
             ]}
           />
         </View>

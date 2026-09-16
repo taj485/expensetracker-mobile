@@ -8,6 +8,7 @@ export default function ExpensesLayout() {
   return (
     <Stack>
       <Stack.Screen name="index" options={{ ...largeTitle, title: 'Expenses' }} />
+      <Stack.Screen name="receipt-edit" options={{ title: 'Edit receipt', headerBackButtonDisplayMode: 'minimal' }} />
       <Stack.Screen
         name="[expenseId]"
         options={{

@@ -3,10 +3,11 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo } from 'react';
-import { Auth0Provider, useAuth0 } from 'react-native-auth0';
+import { Auth0Provider } from 'react-native-auth0';
 
 import { env } from '@/config/env';
 import { queryClient, useAppFocusRefetch } from '@/core/api/queryClient';
+import { useSession } from '@/core/auth/useSession';
 import { useTheme } from '@/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -54,7 +55,7 @@ function NavigationTheme({ children }: { children: React.ReactNode }) {
 // Mobile equivalent of the web client's auth.guard.ts: signed-out users can only reach
 // /login, signed-in users only the app.
 function RootNavigator() {
-  const { user, isLoading } = useAuth0();
+  const { user, isLoading } = useSession();
 
   // Keep the splash screen up while stored credentials are restored, so a signed-in
   // user never sees the welcome screen flash.

@@ -39,7 +39,16 @@
         {
           "domain": "dev-sizppb5m3zuup43h.us.auth0.com"
         }
-      ]
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Recave uses the camera to photograph receipts so it can read the items, merchant and totals for you.",
+          "photosPermission": "Recave opens your photo library so you can choose a receipt photo to read.",
+          "microphonePermission": false
+        }
+      ],
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true,

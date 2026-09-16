@@ -1,9 +1,10 @@
 import Constants from 'expo-constants';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useAuth0 } from 'react-native-auth0';
 
+import { env } from '@/config/env';
 import { isUserCancelled } from '@/core/auth/authErrors';
+import { useSession } from '@/core/auth/useSession';
 import { useSelectedSpace } from '@/core/spaces/SelectedSpaceProvider';
 import { AppText } from '@/shared/components/AppText';
 import { Avatar } from '@/shared/components/Avatar';
@@ -14,7 +15,7 @@ import { ScrollScreen } from '@/shared/components/Screen';
 import { spacing } from '@/theme';
 
 export function ProfileScreen() {
-  const { user, clearSession } = useAuth0();
+  const { user, signOut: endSession } = useSession();
   const { spaces } = useSelectedSpace();
   const [signingOut, setSigningOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +25,7 @@ export function ProfileScreen() {
     setError(null);
     try {
       // Clears the Auth0 browser session and the stored credentials; the root layout then shows welcome.
-      await clearSession();
+      await endSession();
     } catch (e) {
       // iOS asks before opening the logout browser; declining leaves the user signed in.
       if (!isUserCancelled(e)) {
@@ -51,6 +52,7 @@ export function ProfileScreen() {
         items={[
           { label: 'Spaces', value: String(spaces.length) },
           { label: 'Version', value: Constants.expoConfig?.version ?? '—' },
+          ...(env.useSampleData ? [{ label: 'Data', value: 'Sample data' }] : []),
         ]}
       />
 
