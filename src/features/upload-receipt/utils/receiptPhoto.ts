@@ -8,6 +8,13 @@ const JPEG_QUALITY = 0.8;
 
 export type PhotoSource = 'camera' | 'library';
 
+/** The parts of a camera picture or library asset needed to prepare it for upload. */
+export interface CapturedPicture {
+  uri: string;
+  width: number;
+  height: number;
+}
+
 export interface ReceiptPhoto {
   uri: string;
   fileName: string;

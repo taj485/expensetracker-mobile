@@ -158,3 +158,11 @@ export function InsightsIcon({ color, size = 17 }: IconProps) {
     </Svg>
   );
 }
+
+export function FlashIcon({ color, size = 16 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+      <Path d="M13.6 2.2 4.4 13.3a.9.9 0 0 0 .7 1.5H11l-1.1 7c-.1.6.6.9 1 .5l9.2-11.1a.9.9 0 0 0-.7-1.5H13.5l1.1-7c.1-.6-.6-.9-1-.5" />
+    </Svg>
+  );
+}

@@ -124,6 +124,8 @@ expensetracker-mobile/
 │   │   │   └── SpacesSidebarProvider.tsx
 │   │   ├── upload-receipt/
 │   │   │   ├── components/
+│   │   │   │   ├── CameraPreview.tsx
+│   │   │   │   ├── CaptureGuide.tsx
 │   │   │   │   ├── CaptureStep.tsx
 │   │   │   │   ├── ReadingStep.tsx
 │   │   │   │   ├── ReceiptFrame.tsx
