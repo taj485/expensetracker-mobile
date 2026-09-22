@@ -129,6 +129,7 @@ expensetracker-mobile/
 │   │   │   │   ├── ReceiptFrame.tsx
 │   │   │   │   └── ReviewStep.tsx
 │   │   │   ├── hooks/
+│   │   │   │   ├── useConfirmDiscardDrafts.ts
 │   │   │   │   └── useReceiptScan.ts
 │   │   │   ├── utils/
 │   │   │   │   └── receiptPhoto.ts

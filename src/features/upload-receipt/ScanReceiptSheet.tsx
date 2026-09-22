@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet } from 'react-native';
 
 import { useSelectedSpace } from '@/core/spaces/SelectedSpaceProvider';
@@ -10,6 +9,7 @@ import { spacing, type Theme, useThemedStyles } from '@/theme';
 import { CaptureStep } from './components/CaptureStep';
 import { ReadingStep } from './components/ReadingStep';
 import { ReviewStep } from './components/ReviewStep';
+import { useConfirmDiscardDrafts } from './hooks/useConfirmDiscardDrafts';
 import { useReceiptScan } from './hooks/useReceiptScan';
 
 /** Scan sheet: photo → AI extraction → review → choose spaces → save. */
@@ -35,9 +35,9 @@ export function ScanReceiptSheet() {
 }
 
 function ScanFlow({ spaceId }: { spaceId: number }) {
-  const router = useRouter();
   const { spaces } = useSelectedSpace();
   const scan = useReceiptScan(spaceId);
+  const { close } = useConfirmDiscardDrafts(scan.drafts.length > 0);
 
   switch (scan.step) {
     case 'capture':
@@ -67,7 +67,7 @@ function ScanFlow({ spaceId }: { spaceId: number }) {
           error={scan.error}
           onBack={() => scan.setStep('review')}
           onSave={async spaceIds => {
-            if (await scan.save(spaceIds)) router.back();
+            if (await scan.save(spaceIds)) close();
           }}
         />
       );
