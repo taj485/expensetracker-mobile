@@ -3,13 +3,27 @@ import { useEffect, useRef, useState } from 'react';
 
 import { apiErrorMessage } from '@/core/api/apiErrors';
 import { useApiClient } from '@/core/api/useApiClient';
+import { isSessionEnded } from '@/core/auth/authErrors';
 import { queryKeys } from '@/core/queries/queryKeys';
 import { addExpensesBatch, extractReceipt, uploadReceiptImage } from '@/core/services/expenseService';
 import { type DraftErrors, type DraftExpense, toCommand, toDraft, validateDraft } from '@/core/utils/expenseDraft';
+import { confirm } from '@/shared/utils/confirm';
 
 import { pickReceiptPhoto, type PhotoSource, type ReceiptPhoto } from '../utils/receiptPhoto';
 
 export type ScanStep = 'capture' | 'reading' | 'review' | 'spaces';
+
+/**
+ * useApiClient has already signed the user out and the app is heading to /login, taking this
+ * sheet with it — so explain in an alert, which outlives the sheet, rather than inline.
+ */
+function explainSessionEnded() {
+  void confirm({
+    title: 'Please sign in again',
+    message: "Your session has ended. Anything from this receipt that wasn't saved will need scanning again.",
+    confirmLabel: 'OK',
+  });
+}
 
 /**
  * Receipt scanning flow, mirroring the web upload-receipt component:
@@ -76,6 +90,10 @@ export function useReceiptScan(extractSpaceId: number) {
     } catch (e) {
       // A cancel is the user's choice, not a failure.
       if (controller.signal.aborted) return;
+      if (isSessionEnded(e)) {
+        explainSessionEnded();
+        return;
+      }
       setError(apiErrorMessage(e, "Couldn't read this receipt. Try a different photo."));
       setStep('capture');
       setPhoto(null);
@@ -122,6 +140,10 @@ export function useReceiptScan(extractSpaceId: number) {
       setStep('review');
       return false;
     } catch (e) {
+      if (isSessionEnded(e)) {
+        explainSessionEnded();
+        return false;
+      }
       setError(apiErrorMessage(e, 'Failed to add the expenses. Please try again.'));
       return false;
     } finally {
