@@ -6,8 +6,6 @@ import * as ImagePicker from 'expo-image-picker';
 const MAX_DIMENSION = 1600;
 const JPEG_QUALITY = 0.8;
 
-export type PhotoSource = 'camera' | 'library';
-
 /** The parts of a camera picture or library asset needed to prepare it for upload. */
 export interface CapturedPicture {
   uri: string;
@@ -20,21 +18,12 @@ export interface ReceiptPhoto {
   fileName: string;
 }
 
-export type PickResult = { status: 'picked'; photo: ReceiptPhoto } | { status: 'cancelled' } | { status: 'denied' };
+export type PickResult = { status: 'picked'; photo: ReceiptPhoto } | { status: 'cancelled' };
 
-/** Opens the system camera or photo library, then shrinks the photo to an upload-ready JPEG. */
-export async function pickReceiptPhoto(source: PhotoSource): Promise<PickResult> {
-  const options: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], quality: 1 };
-
-  let result: ImagePicker.ImagePickerResult;
-  if (source === 'camera') {
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permission.granted) return { status: 'denied' };
-    result = await ImagePicker.launchCameraAsync(options);
-  } else {
-    // The iOS photo picker runs out of process and needs no library permission.
-    result = await ImagePicker.launchImageLibraryAsync(options);
-  }
+/** Opens the photo library, then shrinks the chosen photo to an upload-ready JPEG. */
+export async function pickLibraryPhoto(): Promise<PickResult> {
+  // The iOS photo picker runs out of process and needs no library permission.
+  const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1 });
 
   const asset = result.canceled ? undefined : result.assets[0];
   if (!asset) return { status: 'cancelled' };
@@ -42,12 +31,17 @@ export async function pickReceiptPhoto(source: PhotoSource): Promise<PickResult>
   return { status: 'picked', photo: await toUploadJpeg(asset) };
 }
 
+/** Shrinks a picture from the in-app camera to an upload-ready JPEG, exactly as a library photo. */
+export function prepareCapturedPhoto(picture: CapturedPicture): Promise<ReceiptPhoto> {
+  return toUploadJpeg(picture);
+}
+
 /** Resizes to fit 1600×1600 and re-encodes as JPEG — which also converts iPhone HEIC photos. */
-async function toUploadJpeg(asset: ImagePicker.ImagePickerAsset): Promise<ReceiptPhoto> {
-  const context = ImageManipulator.manipulate(asset.uri);
-  if (Math.max(asset.width, asset.height) > MAX_DIMENSION) {
+async function toUploadJpeg(picture: CapturedPicture): Promise<ReceiptPhoto> {
+  const context = ImageManipulator.manipulate(picture.uri);
+  if (Math.max(picture.width, picture.height) > MAX_DIMENSION) {
     // Constrain only the longer side; the other scales with the aspect ratio.
-    context.resize(asset.width >= asset.height ? { width: MAX_DIMENSION } : { height: MAX_DIMENSION });
+    context.resize(picture.width >= picture.height ? { width: MAX_DIMENSION } : { height: MAX_DIMENSION });
   }
 
   const image = await context.renderAsync();

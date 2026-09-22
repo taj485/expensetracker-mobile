@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
 import { useSelectedSpace } from '@/core/spaces/SelectedSpaceProvider';
@@ -38,10 +39,21 @@ function ScanFlow({ spaceId }: { spaceId: number }) {
   const { spaces } = useSelectedSpace();
   const scan = useReceiptScan(spaceId);
   const { close } = useConfirmDiscardDrafts(scan.drafts.length > 0);
+  // Held here, not in the capture step, so it survives Cancel and Retake for the sheet's life.
+  const [torchOn, setTorchOn] = useState(false);
 
   switch (scan.step) {
     case 'capture':
-      return <CaptureStep error={scan.error} onPick={scan.start} />;
+      return (
+        <CaptureStep
+          error={scan.error}
+          torchOn={torchOn}
+          onToggleTorch={() => setTorchOn(on => !on)}
+          onCapture={scan.submitCapturedPhoto}
+          onCaptureError={scan.reportCaptureError}
+          onChoosePhoto={scan.chooseFromLibrary}
+        />
+      );
     case 'reading':
       return <ReadingStep photo={scan.photo} onCancel={scan.reset} />;
     case 'review':

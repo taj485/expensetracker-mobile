@@ -9,7 +9,12 @@ import { addExpensesBatch, extractReceipt, uploadReceiptImage } from '@/core/ser
 import { type DraftErrors, type DraftExpense, toCommand, toDraft, validateDraft } from '@/core/utils/expenseDraft';
 import { confirm } from '@/shared/utils/confirm';
 
-import { pickReceiptPhoto, type PhotoSource, type ReceiptPhoto } from '../utils/receiptPhoto';
+import {
+  type CapturedPicture,
+  pickLibraryPhoto,
+  prepareCapturedPhoto,
+  type ReceiptPhoto,
+} from '../utils/receiptPhoto';
 
 export type ScanStep = 'capture' | 'reading' | 'review' | 'spaces';
 
@@ -47,22 +52,38 @@ export function useReceiptScan(extractSpaceId: number) {
 
   useEffect(() => () => scanAbort.current?.abort(), []);
 
-  async function start(source: PhotoSource) {
+  async function chooseFromLibrary() {
     setError(null);
     let picked: ReceiptPhoto;
     try {
-      const result = await pickReceiptPhoto(source);
+      const result = await pickLibraryPhoto();
       if (result.status === 'cancelled') return;
-      if (result.status === 'denied') {
-        setError('Camera access is off. Allow it in Settings, or choose a photo instead.');
-        return;
-      }
       picked = result.photo;
     } catch {
       setError("Couldn't open that photo. Try a different one.");
       return;
     }
+    await read(picked);
+  }
 
+  async function submitCapturedPhoto(picture: CapturedPicture) {
+    setError(null);
+    let prepared: ReceiptPhoto;
+    try {
+      prepared = await prepareCapturedPhoto(picture);
+    } catch {
+      setError("Couldn't use that photo. Try again, or choose a photo instead.");
+      return;
+    }
+    await read(prepared);
+  }
+
+  function reportCaptureError() {
+    setError("Couldn't take the photo. Try again, or choose a photo instead.");
+  }
+
+  /** Extracts the photo's items while its image uploads alongside, whichever way it was taken. */
+  async function read(picked: ReceiptPhoto) {
     const controller = new AbortController();
     scanAbort.current = controller;
     setPhoto(picked);
@@ -177,7 +198,9 @@ export function useReceiptScan(extractSpaceId: number) {
     error,
     saving,
     photoUploadFailed,
-    start,
+    chooseFromLibrary,
+    submitCapturedPhoto,
+    reportCaptureError,
     updateDraft,
     removeDraft,
     continueToSpaces,
