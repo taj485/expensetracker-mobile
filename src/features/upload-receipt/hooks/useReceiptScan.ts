@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { apiErrorMessage } from '@/core/api/apiErrors';
 import { useApiClient } from '@/core/api/useApiClient';
@@ -27,6 +27,10 @@ export function useReceiptScan(extractSpaceId: number) {
   const [saving, setSaving] = useState(false);
   // Started alongside extraction so the photo is usually stored by the time the user saves.
   const imageReference = useRef<Promise<string | null> | null>(null);
+  // Aborts the current scan's uploads when the user cancels, retakes or closes the sheet.
+  const scanAbort = useRef<AbortController | null>(null);
+
+  useEffect(() => () => scanAbort.current?.abort(), []);
 
   async function start(source: PhotoSource) {
     setError(null);
@@ -44,11 +48,15 @@ export function useReceiptScan(extractSpaceId: number) {
       return;
     }
 
+    const controller = new AbortController();
+    scanAbort.current = controller;
     setPhoto(picked);
     setStep('reading');
 
     try {
-      const items = await extractReceipt(api, extractSpaceId, picked.uri, picked.fileName);
+      const items = await extractReceipt(api, extractSpaceId, picked.uri, picked.fileName, controller.signal);
+      // Cancelled or closed while reading (sample data ignores the signal, so check here too).
+      if (controller.signal.aborted) return;
       if (items.length === 0) {
         setError("We couldn't find any expenses on that receipt. Try a clearer photo.");
         reset();
@@ -58,8 +66,16 @@ export function useReceiptScan(extractSpaceId: number) {
       setDraftErrors({});
       setStep('review');
       // A failed image upload shouldn't block saving the expenses themselves.
-      imageReference.current = uploadReceiptImage(api, extractSpaceId, picked.uri, picked.fileName).catch(() => null);
+      imageReference.current = uploadReceiptImage(
+        api,
+        extractSpaceId,
+        picked.uri,
+        picked.fileName,
+        controller.signal,
+      ).catch(() => null);
     } catch (e) {
+      // A cancel is the user's choice, not a failure.
+      if (controller.signal.aborted) return;
       setError(apiErrorMessage(e, "Couldn't read this receipt. Try a different photo."));
       setStep('capture');
       setPhoto(null);
@@ -113,7 +129,10 @@ export function useReceiptScan(extractSpaceId: number) {
     }
   }
 
+  /** Back to the capture step, abandoning the current photo, its drafts and any upload in flight. */
   function reset() {
+    scanAbort.current?.abort();
+    scanAbort.current = null;
     setStep('capture');
     setPhoto(null);
     setDrafts([]);

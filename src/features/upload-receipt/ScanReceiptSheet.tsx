@@ -43,7 +43,7 @@ function ScanFlow({ spaceId }: { spaceId: number }) {
     case 'capture':
       return <CaptureStep error={scan.error} onPick={scan.start} />;
     case 'reading':
-      return <ReadingStep photo={scan.photo} />;
+      return <ReadingStep photo={scan.photo} onCancel={scan.reset} />;
     case 'review':
       return (
         <ReviewStep
