@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 
+import { apiErrorMessage } from '@/core/api/apiErrors';
 import { useApiClient } from '@/core/api/useApiClient';
 import { queryKeys } from '@/core/queries/queryKeys';
 import { addExpensesBatch, extractReceipt, uploadReceiptImage } from '@/core/services/expenseService';
@@ -58,8 +59,8 @@ export function useReceiptScan(extractSpaceId: number) {
       setStep('review');
       // A failed image upload shouldn't block saving the expenses themselves.
       imageReference.current = uploadReceiptImage(api, extractSpaceId, picked.uri, picked.fileName).catch(() => null);
-    } catch {
-      setError("Couldn't read this receipt. Try a different photo.");
+    } catch (e) {
+      setError(apiErrorMessage(e, "Couldn't read this receipt. Try a different photo."));
       setStep('capture');
       setPhoto(null);
     }
@@ -104,8 +105,8 @@ export function useReceiptScan(extractSpaceId: number) {
       setError(messages.join('\n'));
       setStep('review');
       return false;
-    } catch {
-      setError('Failed to add the expenses. Please try again.');
+    } catch (e) {
+      setError(apiErrorMessage(e, 'Failed to add the expenses. Please try again.'));
       return false;
     } finally {
       setSaving(false);
