@@ -39,6 +39,7 @@ export function useReceiptScan(extractSpaceId: number) {
   const [draftErrors, setDraftErrors] = useState<Record<number, DraftErrors>>({});
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [photoUploadFailed, setPhotoUploadFailed] = useState(false);
   // Started alongside extraction so the photo is usually stored by the time the user saves.
   const imageReference = useRef<Promise<string | null> | null>(null);
   // Aborts the current scan's uploads when the user cancels, retakes or closes the sheet.
@@ -79,14 +80,18 @@ export function useReceiptScan(extractSpaceId: number) {
       setDrafts(items.map(toDraft));
       setDraftErrors({});
       setStep('review');
-      // A failed image upload shouldn't block saving the expenses themselves.
+      // A failed image upload shouldn't block saving the expenses themselves — they're saved
+      // without a photo, and the review step says so. Cancels and session ends aren't failures.
       imageReference.current = uploadReceiptImage(
         api,
         extractSpaceId,
         picked.uri,
         picked.fileName,
         controller.signal,
-      ).catch(() => null);
+      ).catch(e => {
+        if (!controller.signal.aborted && !isSessionEnded(e)) setPhotoUploadFailed(true);
+        return null;
+      });
     } catch (e) {
       // A cancel is the user's choice, not a failure.
       if (controller.signal.aborted) return;
@@ -159,6 +164,7 @@ export function useReceiptScan(extractSpaceId: number) {
     setPhoto(null);
     setDrafts([]);
     setDraftErrors({});
+    setPhotoUploadFailed(false);
     imageReference.current = null;
   }
 
@@ -170,6 +176,7 @@ export function useReceiptScan(extractSpaceId: number) {
     draftErrors,
     error,
     saving,
+    photoUploadFailed,
     start,
     updateDraft,
     removeDraft,

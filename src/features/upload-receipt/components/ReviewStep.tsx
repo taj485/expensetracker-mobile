@@ -16,13 +16,24 @@ interface ReviewStepProps {
   drafts: DraftExpense[];
   draftErrors: Record<number, DraftErrors>;
   error: string | null;
+  photoUploadFailed: boolean;
   onChange: (key: number, patch: Partial<DraftExpense>) => void;
   onRemove: (key: number) => void;
   onContinue: () => void;
   onRetake: () => void;
 }
 
-export function ReviewStep({ photo, drafts, draftErrors, error, onChange, onRemove, onContinue, onRetake }: ReviewStepProps) {
+export function ReviewStep({
+  photo,
+  drafts,
+  draftErrors,
+  error,
+  photoUploadFailed,
+  onChange,
+  onRemove,
+  onContinue,
+  onRetake,
+}: ReviewStepProps) {
   const count = drafts.length;
   const total = drafts.reduce((sum, d) => sum + (Number(d.unitPrice) || 0) * (Number(d.quantity) || 0), 0);
   const hasErrors = Object.keys(draftErrors).length > 0;
@@ -50,6 +61,12 @@ export function ReviewStep({ photo, drafts, draftErrors, error, onChange, onRemo
         </View>
       </Card>
 
+      {photoUploadFailed && (
+        // Non-blocking: the expenses still save, just without the photo.
+        <AppText variant="footnote" tone="secondary" accessibilityLiveRegion="polite">
+          {"Photo couldn't be uploaded; your expenses will still save."}
+        </AppText>
+      )}
       {error && (
         <AppText variant="footnote" tone="negative" accessibilityRole="alert">
           {error}

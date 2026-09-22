@@ -51,6 +51,7 @@ function ScanFlow({ spaceId }: { spaceId: number }) {
           drafts={scan.drafts}
           draftErrors={scan.draftErrors}
           error={scan.error}
+          photoUploadFailed={scan.photoUploadFailed}
           onChange={scan.updateDraft}
           onRemove={scan.removeDraft}
           onContinue={scan.continueToSpaces}
