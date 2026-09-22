@@ -1,5 +1,13 @@
 {
   "enabledPlugins": {
     "expo@claude-plugins-official": true
+  },
+  "permissions": {
+    "deny": [
+      "Read(./**/.expo/**)",
+      "Read(./package-lock.json)",
+      "Read(./android/**)",
+      "Read(./ios/**)"
+    ]
   }
 }

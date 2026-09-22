@@ -1,41 +1,53 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { type Edge, SafeAreaView } from 'react-native-safe-area-context';
+import { Platform, RefreshControl, ScrollView, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, spacing } from '@/theme';
+import { TAB_BAR_CLEARANCE } from '@/shared/components/tab-bar/constants';
+import { spacing, useTheme } from '@/theme';
 
-// Native tabs already inset content above the tab bar (a bottom SafeAreaView on Android,
-// automatic ScrollView insets on iOS), so tab screens must skip the bottom edge or the
-// inset is applied twice. Screens outside the tabs (e.g. login) pass `FULL_SCREEN_EDGES`.
-const TAB_SCREEN_EDGES: Edge[] = ['top', 'left', 'right'];
-export const FULL_SCREEN_EDGES: Edge[] = ['top', 'left', 'right', 'bottom'];
-
-interface ScreenProps {
+interface ScrollScreenProps {
   children: ReactNode;
-  centered?: boolean;
-  edges?: Edge[];
+  onRefresh?: () => void;
+  refreshing?: boolean;
+  /** Screens shown under the custom tab bar need space so the last row isn't hidden. */
+  underTabBar?: boolean;
+  /** Screen has no navigation bar (e.g. Home), so it must clear the status bar itself. */
+  headerless?: boolean;
 }
 
-export function Screen({ children, centered = false, edges = TAB_SCREEN_EDGES }: ScreenProps) {
+/**
+ * Scrolling content for a screen inside a native Stack header. `automatic` insets let the
+ * large title collapse as you scroll and keep content clear of the header and status bar.
+ */
+export function ScrollScreen({
+  children,
+  onRefresh,
+  refreshing = false,
+  underTabBar = true,
+  headerless = false,
+}: ScrollScreenProps) {
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  // iOS applies the top safe area through automatic content insets; Android has no equivalent.
+  const statusBarPadding = headerless && Platform.OS === 'android' ? insets.top : 0;
+
   return (
-    <SafeAreaView style={styles.safeArea} edges={edges}>
-      <View style={[styles.content, centered && styles.centered]}>{children}</View>
-    </SafeAreaView>
+    <ScrollView
+      contentInsetAdjustmentBehavior="automatic"
+      style={{ backgroundColor: colors.bgPage }}
+      contentContainerStyle={[
+        styles.content,
+        statusBarPadding > 0 && { paddingTop: statusBarPadding + spacing.sm },
+        underTabBar && { paddingBottom: TAB_BAR_CLEARANCE },
+      ]}
+      refreshControl={
+        onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.iconBrand} /> : undefined
+      }>
+      {children}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.bgPage,
-  },
-  content: {
-    flex: 1,
-    padding: spacing.md,
-    gap: spacing.md,
-  },
-  centered: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  content: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, flexGrow: 1 },
 });
