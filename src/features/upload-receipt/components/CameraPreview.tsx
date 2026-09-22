@@ -7,9 +7,7 @@ import { FlashIcon } from '@/shared/icons/AppIcons';
 import { neutral, radius, spacing } from '@/theme';
 
 import type { CapturedPicture } from '../utils/receiptPhoto';
-import { CaptureGuide } from './CaptureGuide';
-
-export const CAPTURE_HINT = 'Lay the receipt flat in good light, with every line in shot';
+import { CAPTURE_HINT, CaptureGuide } from './CaptureGuide';
 
 interface CameraPreviewProps {
   torchOn: boolean;

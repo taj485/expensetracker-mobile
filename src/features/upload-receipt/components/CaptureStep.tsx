@@ -7,8 +7,8 @@ import { radius, spacing, type Theme, useThemedStyles } from '@/theme';
 
 import { type CameraAccessState, useCameraAccess } from '../hooks/useCameraAccess';
 import type { CapturedPicture } from '../utils/receiptPhoto';
-import { CAPTURE_HINT, CameraPreview } from './CameraPreview';
-import { CaptureGuide } from './CaptureGuide';
+import { CameraPreview } from './CameraPreview';
+import { CAPTURE_HINT, CaptureGuide } from './CaptureGuide';
 import { ReceiptFrame } from './ReceiptFrame';
 
 interface CaptureStepProps {

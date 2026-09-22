@@ -4,6 +4,8 @@ import { StyleSheet, View, type ViewStyle } from 'react-native';
 import { AppText } from '@/shared/components/AppText';
 import { neutral, radius, spacing } from '@/theme';
 
+export const CAPTURE_HINT = 'Lay the receipt flat in good light, with every line in shot';
+
 interface CaptureGuideProps {
   message: string;
   title?: string;
