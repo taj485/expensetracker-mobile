@@ -51,6 +51,15 @@
           "microphonePermission": false
         }
       ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Recave uses the camera to photograph receipts so it can read the items, merchant and totals for you.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "barcodeScannerEnabled": false
+        }
+      ],
       "expo-sharing"
     ],
     "experiments": {
