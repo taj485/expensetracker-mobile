@@ -90,5 +90,5 @@ function ScanFlow({ spaceId }: { spaceId: number }) {
 const createStyles = ({ colors }: Theme) =>
   StyleSheet.create({
     sheet: { flex: 1, backgroundColor: colors.bgElevated },
-    content: { padding: spacing.lg, paddingTop: spacing.xl, paddingBottom: spacing['3xl'], gap: spacing.base },
+    content: { flexGrow: 1, padding: spacing.lg, paddingTop: spacing.xl, paddingBottom: spacing['3xl'], gap: spacing.base },
   });
