@@ -1,6 +1,9 @@
 expensetracker-mobile/
 ├── .claude/
 │   └── settings.json
+├── .eas/
+│   └── workflows/
+│       └── release-ios.yml  EAS: build iOS and submit to TestFlight on push to main
 ├── assets/                  app icons and splash images
 ├── src/
 │   ├── app/
