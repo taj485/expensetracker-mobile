@@ -1,19 +1,29 @@
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/shared/components/AppText';
 import { Button } from '@/shared/components/Button';
 import { radius, spacing, type Theme, useThemedStyles } from '@/theme';
 
-import type { PhotoSource } from '../utils/receiptPhoto';
+import { type CameraAccessState, useCameraAccess } from '../hooks/useCameraAccess';
+import type { CapturedPicture } from '../utils/receiptPhoto';
+import { CameraPreview } from './CameraPreview';
+import { CAPTURE_HINT, CaptureGuide } from './CaptureGuide';
 import { ReceiptFrame } from './ReceiptFrame';
 
 interface CaptureStepProps {
   error: string | null;
-  onPick: (source: PhotoSource) => void;
+  torchOn: boolean;
+  onToggleTorch: () => void;
+  onCapture: (picture: CapturedPicture) => Promise<void>;
+  onCaptureError: () => void;
+  onChoosePhoto: () => void;
 }
 
-export function CaptureStep({ error, onPick }: CaptureStepProps) {
+export function CaptureStep({ error, torchOn, onToggleTorch, onCapture, onCaptureError, onChoosePhoto }: CaptureStepProps) {
   const styles = useThemedStyles(createStyles);
+  const camera = useCameraAccess();
+  const [mountFailed, setMountFailed] = useState(false);
 
   return (
     <>
@@ -27,11 +37,22 @@ export function CaptureStep({ error, onPick }: CaptureStepProps) {
       </View>
 
       <ReceiptFrame>
-        <View style={styles.guide}>
-          <AppText variant="footnote" style={styles.guideText}>
-            Lay the receipt flat in good light, with every line in shot
-          </AppText>
-        </View>
+        {camera.state === 'granted' && !mountFailed ? (
+          <CameraPreview
+            torchOn={torchOn}
+            onToggleTorch={onToggleTorch}
+            onCapture={onCapture}
+            onCaptureError={onCaptureError}
+            onMountError={() => setMountFailed(true)}
+          />
+        ) : (
+          <NoPreviewGuide
+            state={camera.state}
+            mountFailed={mountFailed}
+            onAllow={camera.request}
+            onOpenSettings={camera.openSettings}
+          />
+        )}
       </ReceiptFrame>
 
       <View style={styles.note}>
@@ -49,29 +70,51 @@ export function CaptureStep({ error, onPick }: CaptureStepProps) {
         </AppText>
       )}
 
-      <View style={styles.actions}>
-        <Button title="Choose photo" variant="secondary" onPress={() => onPick('library')} style={styles.action} />
-        <Button title="Take photo" onPress={() => onPick('camera')} style={styles.action} />
-      </View>
+      <Button title="Choose photo" variant="secondary" onPress={onChoosePhoto} />
     </>
   );
+}
+
+interface NoPreviewGuideProps {
+  state: CameraAccessState;
+  mountFailed: boolean;
+  onAllow: () => void;
+  onOpenSettings: () => void;
+}
+
+/** What the frame shows instead of the preview: why there's no camera, and the way forward. */
+function NoPreviewGuide({ state, mountFailed, onAllow, onOpenSettings }: NoPreviewGuideProps) {
+  if (mountFailed) {
+    return (
+      <CaptureGuide
+        title="Camera unavailable"
+        message="Couldn't start the camera. You can still choose a photo instead."
+      />
+    );
+  }
+
+  switch (state) {
+    case 'askable':
+      return (
+        <CaptureGuide message="Camera access is off. Allow it to scan receipts here, or choose a photo instead.">
+          <Button title="Allow camera" variant="ghostOnBrand" onPress={onAllow} />
+        </CaptureGuide>
+      );
+    case 'blocked':
+      return (
+        <CaptureGuide message="Camera access is off. Allow it in Settings, or choose a photo instead.">
+          <Button title="Open Settings" variant="ghostOnBrand" onPress={onOpenSettings} />
+        </CaptureGuide>
+      );
+    default:
+      // Still checking: the plain guide with no buttons, behind the system prompt if one is up.
+      return <CaptureGuide message={CAPTURE_HINT} />;
+  }
 }
 
 const createStyles = ({ colors }: Theme) =>
   StyleSheet.create({
     header: { gap: spacing.xs },
-    guide: {
-      width: '65%',
-      height: '85%',
-      borderRadius: radius.md,
-      borderWidth: 2,
-      borderStyle: 'dashed',
-      borderColor: 'rgba(255, 255, 255, 0.5)',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: spacing.base,
-    },
-    guideText: { color: 'rgba(255, 255, 255, 0.75)', textAlign: 'center' },
     note: {
       flexDirection: 'row',
       gap: spacing.sm,
@@ -82,6 +125,4 @@ const createStyles = ({ colors }: Theme) =>
       backgroundColor: colors.bgBrandSoft,
     },
     noteText: { flex: 1 },
-    actions: { flexDirection: 'row', gap: spacing.md },
-    action: { flex: 1 },
   });

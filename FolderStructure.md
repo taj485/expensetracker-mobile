@@ -130,11 +130,15 @@ expensetracker-mobile/
 │   │   │   └── SpacesSidebarProvider.tsx
 │   │   ├── upload-receipt/
 │   │   │   ├── components/
+│   │   │   │   ├── CameraPreview.tsx
+│   │   │   │   ├── CaptureGuide.tsx
 │   │   │   │   ├── CaptureStep.tsx
 │   │   │   │   ├── ReadingStep.tsx
 │   │   │   │   ├── ReceiptFrame.tsx
 │   │   │   │   └── ReviewStep.tsx
 │   │   │   ├── hooks/
+│   │   │   │   ├── useCameraAccess.ts
+│   │   │   │   ├── useConfirmDiscardDrafts.ts
 │   │   │   │   └── useReceiptScan.ts
 │   │   │   ├── utils/
 │   │   │   │   └── receiptPhoto.ts

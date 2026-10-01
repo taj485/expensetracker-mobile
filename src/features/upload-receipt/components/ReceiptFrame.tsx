@@ -10,7 +10,9 @@ export function ReceiptFrame({ children }: { children: ReactNode }) {
 
 const styles = StyleSheet.create({
   frame: {
-    height: 300,
+    flex: 1,
+    // Fills the space the sheet leaves; 300 keeps it usable when that space is short.
+    minHeight: 300,
     borderRadius: radius.xl,
     // Inverse ground in both appearances — photos read best on dark.
     backgroundColor: neutral[900],

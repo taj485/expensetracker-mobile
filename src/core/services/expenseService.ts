@@ -42,15 +42,28 @@ async function imageForm(uri: string, fileName: string): Promise<FormData> {
 }
 
 // API CALL: POST /api/expensetable/{tableId}/expenses/extract-receipt — reads line items from a receipt photo (multipart)
-export async function extractReceipt(api: ApiClient, tableId: number, imageUri: string, fileName: string): Promise<ExtractedExpense[]> {
-  return api.postForm<ExtractedExpense[]>(`${tableUrl(tableId)}/extract-receipt`, await imageForm(imageUri, fileName));
+export async function extractReceipt(
+  api: ApiClient,
+  tableId: number,
+  imageUri: string,
+  fileName: string,
+  signal?: AbortSignal,
+): Promise<ExtractedExpense[]> {
+  return api.postForm<ExtractedExpense[]>(`${tableUrl(tableId)}/extract-receipt`, await imageForm(imageUri, fileName), signal);
 }
 
 // API CALL: POST /api/expensetable/{tableId}/expenses/receipt-image — stores the receipt photo, returns a reference for the batch
-export async function uploadReceiptImage(api: ApiClient, tableId: number, imageUri: string, fileName: string): Promise<string> {
+export async function uploadReceiptImage(
+  api: ApiClient,
+  tableId: number,
+  imageUri: string,
+  fileName: string,
+  signal?: AbortSignal,
+): Promise<string> {
   const result = await api.postForm<{ imageReference: string }>(
     `${tableUrl(tableId)}/receipt-image`,
     await imageForm(imageUri, fileName),
+    signal,
   );
   return result.imageReference;
 }

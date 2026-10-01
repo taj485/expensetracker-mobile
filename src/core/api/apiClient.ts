@@ -19,8 +19,8 @@ export interface ApiClient {
   post<T>(path: string, body?: unknown): Promise<T>;
   put<T>(path: string, body?: unknown): Promise<T>;
   delete<T>(path: string): Promise<T>;
-  /** Multipart upload (e.g. a receipt photo). */
-  postForm<T>(path: string, form: FormData): Promise<T>;
+  /** Multipart upload (e.g. a receipt photo). Rejects if `signal` aborts before it completes. */
+  postForm<T>(path: string, form: FormData, signal?: AbortSignal): Promise<T>;
   /** Downloads a file response (e.g. a receipt photo) to somewhere the app can save or share it from. */
   download(path: string): Promise<DownloadedFile>;
 }
@@ -35,7 +35,12 @@ export interface DownloadedFile {
 // Mobile equivalent of the web client's auth.interceptor.ts: every request carries
 // the Auth0 access token as a Bearer header.
 export function createApiClient(getAccessToken: GetAccessToken): ApiClient {
-  async function send<T>(method: string, path: string, body: BodyInit | undefined, contentType?: string): Promise<T> {
+  async function send<T>(
+    method: string,
+    path: string,
+    body: BodyInit | undefined,
+    { contentType, signal }: { contentType?: string; signal?: AbortSignal } = {},
+  ): Promise<T> {
     const token = await getAccessToken();
     const response = await fetch(`${env.apiUrl}${path}`, {
       method,
@@ -46,6 +51,7 @@ export function createApiClient(getAccessToken: GetAccessToken): ApiClient {
         ...(contentType && { 'Content-Type': contentType }),
       },
       body,
+      signal,
     });
 
     if (!response.ok) {
@@ -59,14 +65,16 @@ export function createApiClient(getAccessToken: GetAccessToken): ApiClient {
   }
 
   const json = <T>(method: string, path: string, body?: unknown) =>
-    send<T>(method, path, body !== undefined ? JSON.stringify(body) : undefined, body !== undefined ? 'application/json' : undefined);
+    body !== undefined
+      ? send<T>(method, path, JSON.stringify(body), { contentType: 'application/json' })
+      : send<T>(method, path, undefined);
 
   return {
     get: path => json('GET', path),
     post: (path, body) => json('POST', path, body),
     put: (path, body) => json('PUT', path, body),
     delete: path => json('DELETE', path),
-    postForm: (path, form) => send('POST', path, form),
+    postForm: (path, form, signal) => send('POST', path, form, { signal }),
     download: async path => {
       const token = await getAccessToken();
       try {

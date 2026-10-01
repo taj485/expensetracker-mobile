@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
 import { useSelectedSpace } from '@/core/spaces/SelectedSpaceProvider';
@@ -10,6 +10,7 @@ import { spacing, type Theme, useThemedStyles } from '@/theme';
 import { CaptureStep } from './components/CaptureStep';
 import { ReadingStep } from './components/ReadingStep';
 import { ReviewStep } from './components/ReviewStep';
+import { useConfirmDiscardDrafts } from './hooks/useConfirmDiscardDrafts';
 import { useReceiptScan } from './hooks/useReceiptScan';
 
 /** Scan sheet: photo → AI extraction → review → choose spaces → save. */
@@ -35,15 +36,26 @@ export function ScanReceiptSheet() {
 }
 
 function ScanFlow({ spaceId }: { spaceId: number }) {
-  const router = useRouter();
   const { spaces } = useSelectedSpace();
   const scan = useReceiptScan(spaceId);
+  const { close } = useConfirmDiscardDrafts(scan.drafts.length > 0);
+  // Held here, not in the capture step, so it survives Cancel and Retake for the sheet's life.
+  const [torchOn, setTorchOn] = useState(false);
 
   switch (scan.step) {
     case 'capture':
-      return <CaptureStep error={scan.error} onPick={scan.start} />;
+      return (
+        <CaptureStep
+          error={scan.error}
+          torchOn={torchOn}
+          onToggleTorch={() => setTorchOn(on => !on)}
+          onCapture={scan.submitCapturedPhoto}
+          onCaptureError={scan.reportCaptureError}
+          onChoosePhoto={scan.chooseFromLibrary}
+        />
+      );
     case 'reading':
-      return <ReadingStep photo={scan.photo} />;
+      return <ReadingStep photo={scan.photo} onCancel={scan.reset} />;
     case 'review':
       return (
         <ReviewStep
@@ -51,6 +63,7 @@ function ScanFlow({ spaceId }: { spaceId: number }) {
           drafts={scan.drafts}
           draftErrors={scan.draftErrors}
           error={scan.error}
+          photoUploadFailed={scan.photoUploadFailed}
           onChange={scan.updateDraft}
           onRemove={scan.removeDraft}
           onContinue={scan.continueToSpaces}
@@ -67,7 +80,7 @@ function ScanFlow({ spaceId }: { spaceId: number }) {
           error={scan.error}
           onBack={() => scan.setStep('review')}
           onSave={async spaceIds => {
-            if (await scan.save(spaceIds)) router.back();
+            if (await scan.save(spaceIds)) close();
           }}
         />
       );
@@ -77,5 +90,5 @@ function ScanFlow({ spaceId }: { spaceId: number }) {
 const createStyles = ({ colors }: Theme) =>
   StyleSheet.create({
     sheet: { flex: 1, backgroundColor: colors.bgElevated },
-    content: { padding: spacing.lg, paddingTop: spacing.xl, paddingBottom: spacing['3xl'], gap: spacing.base },
+    content: { flexGrow: 1, padding: spacing.lg, paddingTop: spacing.xl, paddingBottom: spacing['3xl'], gap: spacing.base },
   });

@@ -201,8 +201,9 @@ export const sampleApiClient: ApiClient = {
   post: (path, body) => handle('POST', path, body) as never,
   put: (path, body) => handle('PUT', path, body) as never,
   delete: path => handle('DELETE', path) as never,
-  // The photo itself is ignored — sample extraction always "reads" the same receipt.
-  postForm: path => handle('POST', path) as never,
+  // The photo itself is ignored — sample extraction always "reads" the same receipt. So is the
+  // abort signal: callers that cancel (useReceiptScan) discard whatever arrives afterwards.
+  postForm: (path, _form, _signal) => handle('POST', path) as never,
   download: async path => {
     await wait();
     // /expensetable/{id}/expenses/by-receipt/{receiptId}/image
