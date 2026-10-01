@@ -4,6 +4,9 @@ expensetracker-mobile/
 ├── .eas/
 │   └── workflows/
 │       └── release-ios.yml  EAS: build iOS and submit to TestFlight on push to main
+├── .github/
+│   └── workflows/
+│       └── ci.yml           lint and type check on pull requests to main
 ├── assets/                  app icons and splash images
 ├── src/
 │   ├── app/
