@@ -187,7 +187,6 @@ expensetracker-mobile/
 │       ├── typography.ts
 │       └── useTheme.ts
 ├── .env.example
-├── .env.production
 ├── .gitignore
 ├── AGENTS.md
 ├── app.json
