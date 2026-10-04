@@ -193,6 +193,7 @@ expensetracker-mobile/
 ├── .env.example
 ├── .gitignore
 ├── AGENTS.md
+├── app.config.js
 ├── app.json
 ├── CLAUDE.md
 ├── eas.json
