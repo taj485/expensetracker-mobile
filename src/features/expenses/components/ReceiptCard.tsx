@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
 import { formatShortDate } from '@/core/utils/dateUtils';
 import type { ReceiptGroup } from '@/core/utils/expenseUtils';
@@ -7,6 +8,7 @@ import { formatMoney } from '@/core/utils/moneyUtils';
 import { uploaderLabel } from '@/core/utils/uploaderUtils';
 import { AppText } from '@/shared/components/AppText';
 import { Card } from '@/shared/components/Card';
+import { Collapsible, useOpenProgress } from '@/shared/components/Collapsible';
 import { MerchantLogo } from '@/shared/components/MerchantLogo';
 import { spacing, type Theme, useThemedStyles } from '@/theme';
 
@@ -23,6 +25,8 @@ interface ReceiptCardProps {
 export function ReceiptCard({ receipt, showUploader, onPressExpense }: ReceiptCardProps) {
   const styles = useThemedStyles(createStyles);
   const [expanded, setExpanded] = useState(true);
+  const progress = useOpenProgress(expanded);
+  const chevronStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${progress.get() * 90}deg` }] }));
   const merchant = receipt.merchant || 'Uncategorised';
   const uploader = showUploader ? uploaderLabel(receipt, 'short') : null;
   const date = formatShortDate(receipt.date);
@@ -56,12 +60,14 @@ export function ReceiptCard({ receipt, showUploader, onPressExpense }: ReceiptCa
         <AppText variant="headline" weight="700" numeric>
           {formatMoney(receipt.total)}
         </AppText>
-        <AppText variant="headline" tone="muted" importantForAccessibility="no" style={expanded && styles.chevronOpen}>
-          ›
-        </AppText>
+        <Animated.View style={chevronStyle} importantForAccessibility="no">
+          <AppText variant="headline" tone="muted">
+            ›
+          </AppText>
+        </Animated.View>
       </Pressable>
 
-      {expanded && (
+      <Collapsible expanded={expanded}>
         <View style={styles.items}>
           {receipt.expenses.map((expense, index) => (
             <ReceiptItemRow
@@ -72,7 +78,7 @@ export function ReceiptCard({ receipt, showUploader, onPressExpense }: ReceiptCa
             />
           ))}
         </View>
-      )}
+      </Collapsible>
     </Card>
   );
 }
@@ -87,7 +93,6 @@ const createStyles = ({ colors }: Theme) =>
       paddingHorizontal: spacing.base,
     },
     pressed: { backgroundColor: colors.bgSurfaceAlt },
-    chevronOpen: { transform: [{ rotate: '90deg' }] },
     ident: { flex: 1, gap: spacing['2xs'] },
     items: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.borderDefault },
   });

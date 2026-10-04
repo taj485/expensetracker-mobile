@@ -161,6 +161,7 @@ expensetracker-mobile/
 │   │   │   ├── CategoryBadge.tsx
 │   │   │   ├── CategoryPicker.tsx
 │   │   │   ├── Chip.tsx
+│   │   │   ├── Collapsible.tsx
 │   │   │   ├── DateField.tsx
 │   │   │   ├── ExpenseItemCard.tsx
 │   │   │   ├── IconButton.tsx
