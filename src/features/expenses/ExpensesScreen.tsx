@@ -128,20 +128,18 @@ export function ExpensesScreen() {
           <ReceiptCard
             receipt={item}
             showUploader={selectedSpace.memberCount > 1}
-            onPressHeader={() =>
-              router.push({
-                pathname: '/expenses/receipt-edit',
-                params:
-                  item.receiptId != null
-                    ? { spaceId: String(spaceId), receiptId: String(item.receiptId) }
-                    : { spaceId: String(spaceId), expenseId: String(item.expenses[0].id) },
-              })
-            }
+            // Lines of a scanned receipt open the receipt, which links on to each item;
+            // standalone expenses open their own page.
             onPressExpense={expenseId =>
-              router.push({
-                pathname: '/expenses/[expenseId]',
-                params: { expenseId: String(expenseId), spaceId: String(spaceId) },
-              })
+              item.receiptId != null
+                ? router.push({
+                    pathname: '/expenses/receipt-edit',
+                    params: { spaceId: String(spaceId), receiptId: String(item.receiptId) },
+                  })
+                : router.push({
+                    pathname: '/expenses/[expenseId]',
+                    params: { expenseId: String(expenseId), spaceId: String(spaceId) },
+                  })
             }
           />
         )}

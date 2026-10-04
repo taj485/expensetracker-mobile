@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { formatShortDate } from '@/core/utils/dateUtils';
@@ -15,14 +16,13 @@ interface ReceiptCardProps {
   receipt: ReceiptGroup;
   /** Shared spaces show who added each receipt; in a personal space it would always be "you". */
   showUploader: boolean;
-  /** The merchant header opens the whole receipt for editing. */
-  onPressHeader: () => void;
   onPressExpense: (expenseId: number) => void;
 }
 
-/** One card per receipt: merchant header with the receipt total, over its line items. */
-export function ReceiptCard({ receipt, showUploader, onPressHeader, onPressExpense }: ReceiptCardProps) {
+/** One card per receipt: merchant header with the receipt total, over its line items. Tapping the header folds the items away. */
+export function ReceiptCard({ receipt, showUploader, onPressExpense }: ReceiptCardProps) {
   const styles = useThemedStyles(createStyles);
+  const [expanded, setExpanded] = useState(true);
   const merchant = receipt.merchant || 'Uncategorised';
   const uploader = showUploader ? uploaderLabel(receipt, 'short') : null;
   const date = formatShortDate(receipt.date);
@@ -32,8 +32,9 @@ export function ReceiptCard({ receipt, showUploader, onPressHeader, onPressExpen
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${merchant}, ${date}${uploader ? `, added by ${uploader}` : ''}, total ${formatMoney(receipt.total)}`}
-        accessibilityHint="Opens the receipt to edit"
-        onPress={onPressHeader}
+        accessibilityHint={expanded ? 'Hides the items' : 'Shows the items'}
+        accessibilityState={{ expanded }}
+        onPress={() => setExpanded(e => !e)}
         style={({ pressed }) => [styles.head, pressed && styles.pressed]}>
         <MerchantLogo merchant={receipt.merchant} website={receipt.merchantWebsite} />
         <View style={styles.ident}>
@@ -55,21 +56,23 @@ export function ReceiptCard({ receipt, showUploader, onPressHeader, onPressExpen
         <AppText variant="headline" weight="700" numeric>
           {formatMoney(receipt.total)}
         </AppText>
-        <AppText variant="headline" tone="muted" importantForAccessibility="no">
+        <AppText variant="headline" tone="muted" importantForAccessibility="no" style={expanded && styles.chevronOpen}>
           ›
         </AppText>
       </Pressable>
 
-      <View style={styles.items}>
-        {receipt.expenses.map((expense, index) => (
-          <ReceiptItemRow
-            key={expense.id}
-            expense={expense}
-            isLast={index === receipt.expenses.length - 1}
-            onPress={() => onPressExpense(expense.id)}
-          />
-        ))}
-      </View>
+      {expanded && (
+        <View style={styles.items}>
+          {receipt.expenses.map((expense, index) => (
+            <ReceiptItemRow
+              key={expense.id}
+              expense={expense}
+              isLast={index === receipt.expenses.length - 1}
+              onPress={() => onPressExpense(expense.id)}
+            />
+          ))}
+        </View>
+      )}
     </Card>
   );
 }
@@ -84,6 +87,7 @@ const createStyles = ({ colors }: Theme) =>
       paddingHorizontal: spacing.base,
     },
     pressed: { backgroundColor: colors.bgSurfaceAlt },
+    chevronOpen: { transform: [{ rotate: '90deg' }] },
     ident: { flex: 1, gap: spacing['2xs'] },
     items: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.borderDefault },
   });
