@@ -175,6 +175,7 @@ expensetracker-mobile/
 │   │   │   ├── SheetHandle.web.tsx
 │   │   │   ├── StatTile.tsx
 │   │   │   ├── TextField.tsx
+│   │   │   ├── UnderlineTabs.tsx
 │   │   │   └── Wordmark.tsx
 │   │   ├── icons/
 │   │   │   ├── AppIcons.tsx

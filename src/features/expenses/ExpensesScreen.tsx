@@ -5,12 +5,22 @@ import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { useSpaceExpenses } from '@/core/queries/expenseQueries';
 import { useToggleStar } from '@/core/queries/spaceQueries';
 import { useSelectedSpace } from '@/core/spaces/SelectedSpaceProvider';
-import { type DatePeriod, dayKeyOf, monthKeyOf, monthKeysBack, periodRange } from '@/core/utils/dateUtils';
+import {
+  type DatePeriod,
+  dayKeyOf,
+  formatDayLabel,
+  monthKeyOf,
+  monthKeysBack,
+  periodRange,
+  type Weekday,
+  weekDays,
+} from '@/core/utils/dateUtils';
 import { groupByReceipt, sumExpenses } from '@/core/utils/expenseUtils';
 import { formatMoney } from '@/core/utils/moneyUtils';
 import { EmptyState, ErrorState, LoadingState } from '@/shared/components/QueryState';
 import { StatTile } from '@/shared/components/StatTile';
 import { TAB_BAR_CLEARANCE } from '@/shared/components/tab-bar/constants';
+import { type UnderlineTab, UnderlineTabs } from '@/shared/components/UnderlineTabs';
 import { spacing, useTheme } from '@/theme';
 
 import { CategoryChips } from './components/CategoryChips';
@@ -39,22 +49,23 @@ export function ExpensesScreen() {
   // Filters come from the URL, so Home's cards (and deep links) can open a filtered list.
   // Every value is validated by parseExpenseFilters, so the cast only names the expected keys.
   const params = useLocalSearchParams() as ExpenseFilterParams;
-  const { months, period = null, categories } = parseExpenseFilters(params, selectedSpace?.id);
+  const { months, period = null, weekday = null, categories } = parseExpenseFilters(params, selectedSpace?.id);
   const setFilter = (patch: Partial<ExpenseFilters>) => {
     if (!selectedSpace) return;
     // This screen's own navigation object, not router.setParams: with tabs, router.setParams can
     // update whichever route the router considers current (e.g. Home) instead of this one.
-    navigation.setParams(toExpenseFilterParams(selectedSpace.id, { months, period, categories, ...patch }) as never);
+    navigation.setParams(toExpenseFilterParams(selectedSpace.id, { months, period, weekday, categories, ...patch }) as never);
   };
   // Stable keys for memoising on the selection (the parsed arrays are new every render).
   const categoryKey = categories.join(',');
   const monthKey = months.join(',');
+  const selectedDayKey = selectedDayDate(period, weekday);
 
   const filtered = useMemo(
     () => {
       const wanted = categoryKey ? categoryKey.split(',') : [];
       const wantedMonths = monthKey ? monthKey.split(',') : [];
-      const range = period ? periodRange(period) : null;
+      const range = selectedDayKey ? { start: selectedDayKey, end: selectedDayKey } : period ? periodRange(period) : null;
       return (expensesQuery.data ?? []).filter(
         e =>
           (wantedMonths.length === 0 || wantedMonths.includes(monthKeyOf(e.date))) &&
@@ -62,10 +73,24 @@ export function ExpensesScreen() {
           (wanted.length === 0 || wanted.includes(e.category)),
       );
     },
-    [expensesQuery.data, monthKey, period, categoryKey],
+    [expensesQuery.data, monthKey, period, selectedDayKey, categoryKey],
   );
   const receipts = useMemo(() => groupByReceipt(filtered), [filtered]);
   const monthKeys = useMemo(() => monthKeysBack(MONTHS_SHOWN), []);
+
+  // Day tabs drill into This week / Last week, with the whole week last (and the default).
+  const days = period === 'this-week' || period === 'last-week' ? weekDays(period) : [];
+  const dayTabs: UnderlineTab<Weekday | 'week'>[] = [
+    ...days.map(d => ({
+      key: d.key,
+      overline: d.name,
+      label: String(d.dayOfMonth),
+      accessibilityLabel: formatDayLabel(d.date),
+      disabled: d.isFuture,
+    })),
+    { key: 'week' as const, label: period === 'last-week' ? 'Last week' : 'This week' },
+  ];
+  const selectedTab = days.find(d => d.date === selectedDayKey)?.key ?? 'week';
 
   const retry = () => {
     refetch();
@@ -116,18 +141,26 @@ export function ExpensesScreen() {
               monthKeys={monthKeys}
               selected={months}
               period={period}
-              onToggle={key => setFilter({ months: toggleMonth(months, key), period: null })}
-              onClear={() => setFilter({ months: [], period: null })}
+              onToggle={key => setFilter({ months: toggleMonth(months, key), period: null, weekday: null })}
+              onClear={() => setFilter({ months: [], period: null, weekday: null })}
               // Tapping the selected period again shows all months.
-              onSelectPeriod={p => setFilter({ period: p === period ? null : p, months: [] })}
+              onSelectPeriod={p => setFilter({ period: p === period ? null : p, months: [], weekday: null })}
             />
             <CategoryChips
               selected={categories}
               onToggle={category => setFilter({ categories: toggleCategory(categories, category) })}
               onClear={() => setFilter({ categories: [] })}
             />
+            {days.length > 0 && (
+              <UnderlineTabs
+                tabs={dayTabs}
+                selected={selectedTab}
+                onSelect={key => setFilter({ weekday: key === 'week' ? null : key })}
+                accessibilityLabel="Filter by day"
+              />
+            )}
             <View style={styles.stats}>
-              <StatTile label={totalLabel(period, months.length)} value={formatMoney(sumExpenses(filtered))} highlight />
+              <StatTile label={selectedDayKey ? formatDayLabel(selectedDayKey) : totalLabel(period, months.length)} value={formatMoney(sumExpenses(filtered))} highlight />
               <StatTile label="Entries" value={String(filtered.length)} />
             </View>
           </View>
@@ -165,6 +198,12 @@ export function ExpensesScreen() {
 }
 
 const PERIOD_TOTAL_LABELS: Record<DatePeriod, string> = { 'this-week': 'This week', 'last-week': 'Last week', today: 'Today' };
+
+/** The date of the selected weekday; null outside a week period or for a day still to come. */
+function selectedDayDate(period: DatePeriod | null, weekday: Weekday | null): string | null {
+  if (!weekday || (period !== 'this-week' && period !== 'last-week')) return null;
+  return weekDays(period).find(d => d.key === weekday && !d.isFuture)?.date ?? null;
+}
 
 function totalLabel(period: DatePeriod | null, monthCount: number): string {
   if (period) return PERIOD_TOTAL_LABELS[period];

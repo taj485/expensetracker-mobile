@@ -1,11 +1,11 @@
 import type { ExpenseCategory } from '@/core/models/expense.model';
 import { ALL_CATEGORIES } from '@/core/utils/categoryUtils';
-import { DATE_PERIODS, type DatePeriod } from '@/core/utils/dateUtils';
+import { DATE_PERIODS, type DatePeriod, WEEKDAYS, type Weekday } from '@/core/utils/dateUtils';
 
 /**
  * Expenses filters live in the route's search params, like the web expense list's query params,
  * so other screens can link straight to a filtered view:
- *   ?spaceId=1&period=last-week&category=Food,Health
+ *   ?spaceId=1&period=last-week&weekday=mon&category=Food,Health
  *   ?spaceId=1&month=2026-10,2026-09
  * With no period or month the screen opens on this week.
  */
@@ -15,6 +15,8 @@ export interface ExpenseFilterParams {
   month?: string;
   /** 'this-week' | 'last-week' | 'today', or 'all' for every month. */
   period?: string;
+  /** 'mon'…'sun': one day of the selected week. */
+  weekday?: string;
   /** Comma-separated categories. */
   category?: string;
 }
@@ -27,6 +29,8 @@ export interface ExpenseFilters {
    * Left out (as Home's links do), the screen opens on this week.
    */
   period?: DatePeriod | null;
+  /** One day of a week period; null or left out for the whole week. */
+  weekday?: Weekday | null;
   /** Empty means every category. */
   categories: ExpenseCategory[];
 }
@@ -50,6 +54,7 @@ export function parseExpenseFilters(params: ExpenseFilterParams, selectedSpaceId
   return {
     months,
     period: parsePeriod(params.period, months),
+    weekday: WEEKDAYS.includes(params.weekday as Weekday) ? (params.weekday as Weekday) : null,
     categories,
   };
 }
@@ -61,6 +66,7 @@ export function toExpenseFilterParams(spaceId: number, filters: ExpenseFilters):
     month: filters.months.length > 0 ? filters.months.join(',') : undefined,
     // Months replace any period; null is stored as 'all' so it doesn't fall back to this week.
     period: filters.months.length > 0 || filters.period === undefined ? undefined : (filters.period ?? 'all'),
+    weekday: filters.weekday ?? undefined,
     category: filters.categories.length > 0 ? filters.categories.join(',') : undefined,
   };
 }
