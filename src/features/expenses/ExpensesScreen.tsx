@@ -175,7 +175,7 @@ export function ExpensesScreen() {
           </View>
         }
         ListEmptyComponent={
-          // This week is the default, so "no expenses yet" only when the space really is empty.
+          // A date filter is always on by default, so "no expenses yet" only when the space really is empty.
           (expensesQuery.data?.length ?? 0) > 0 ? (
             <EmptyState title="No matching expenses" message="Try another date or more categories." />
           ) : (
