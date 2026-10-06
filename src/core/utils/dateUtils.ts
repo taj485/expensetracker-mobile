@@ -66,6 +66,39 @@ export function formatDayLabel(isoDate: string): string {
   return new Date(year, month - 1, day).toLocaleDateString(LOCALE, { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
+function parseDay(isoDate: string): Date {
+  const [year, month, day] = isoDate.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+/** The local day `days` after a 'YYYY-MM-DD' date (before it when negative). */
+export function addDays(isoDate: string, days: number): string {
+  const d = parseDay(isoDate);
+  return isoDay(new Date(d.getFullYear(), d.getMonth(), d.getDate() + days));
+}
+
+/** '2026-09-23' becomes 'Wed'. */
+export function formatWeekdayShort(isoDate: string): string {
+  return parseDay(isoDate).toLocaleDateString(LOCALE, { weekday: 'short' });
+}
+
+/** '2026-09-23' becomes 'Sep'. */
+export function formatMonthShort(isoDate: string): string {
+  return parseDay(isoDate).toLocaleDateString(LOCALE, { month: 'short' });
+}
+
+/** An inclusive range of days, like the Health app: '23–29 Sep 2026', '29 Sep – 5 Oct 2026', '6 Oct 2025 – 5 Oct 2026'. */
+export function formatDateRange(start: string, end: string): string {
+  const s = parseDay(start);
+  const e = parseDay(end);
+  const endText = e.toLocaleDateString(LOCALE, { day: 'numeric', month: 'short', year: 'numeric' });
+  if (s.getFullYear() !== e.getFullYear()) {
+    return `${s.toLocaleDateString(LOCALE, { day: 'numeric', month: 'short', year: 'numeric' })} – ${endText}`;
+  }
+  if (s.getMonth() !== e.getMonth()) return `${s.toLocaleDateString(LOCALE, { day: 'numeric', month: 'short' })} – ${endText}`;
+  return `${s.getDate()}–${endText}`;
+}
+
 /** Current month as 'YYYY-MM'. */
 export function currentMonthKey(): string {
   return monthKey(new Date());

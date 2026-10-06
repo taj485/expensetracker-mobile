@@ -6,7 +6,7 @@ import { useSession } from '@/core/auth/useSession';
 import { useSpaceExpenses } from '@/core/queries/expenseQueries';
 import { useSelectedSpace } from '@/core/spaces/SelectedSpaceProvider';
 import { currentMonthKey } from '@/core/utils/dateUtils';
-import { categoryBreakdown, dailyTotals, expensesInMonth, summariseMonth } from '@/core/utils/spendingUtils';
+import { categoryBreakdown, expensesInMonth, summariseMonth } from '@/core/utils/spendingUtils';
 import { type ExpenseFilters, toExpenseFilterParams } from '@/features/expenses/expenseFilters';
 import { AppText } from '@/shared/components/AppText';
 import { EmptyState, ErrorState, LoadingState } from '@/shared/components/QueryState';
@@ -17,9 +17,9 @@ import { spacing } from '@/theme';
 
 import { BalanceCard } from './components/BalanceCard';
 import { CategoryRow } from './components/CategoryRow';
-import { DailySpendChart } from './components/DailySpendChart';
 import { HomeHeader } from './components/HomeHeader';
 import { QuickAction } from './components/QuickAction';
+import { SpendingChart } from './components/SpendingChart';
 
 export function HomeScreen() {
   const router = useRouter();
@@ -34,7 +34,6 @@ export function HomeScreen() {
     () => (expenses ? categoryBreakdown(expensesInMonth(expenses, monthKey)) : []),
     [expenses, monthKey],
   );
-  const daily = useMemo(() => (expenses ? dailyTotals(expenses, monthKey) : []), [expenses, monthKey]);
 
   const refresh = () => {
     refetchSpaces();
@@ -72,12 +71,12 @@ export function HomeScreen() {
           <QuickAction label="Expenses" Icon={ExpensesIcon} onPress={() => openExpenses({ months: [], categories: [] })} />
         </View>
 
-        {/* Hidden when there's nothing to chart; the category section's empty state covers it. */}
-        {daily.some(d => d.total > 0) && (
+        {/* Hidden for a space with no expenses at all; the category section's empty state covers it. */}
+        {expenses && expenses.length > 0 && (
           <>
-            <SectionHeader title="Spending by day" />
+            <SectionHeader title="Spending" />
             <View style={styles.chart}>
-              <DailySpendChart days={daily} />
+              <SpendingChart expenses={expenses} />
             </View>
           </>
         )}

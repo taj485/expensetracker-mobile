@@ -103,9 +103,9 @@ expensetracker-mobile/
 │   │   │   ├── components/
 │   │   │   │   ├── BalanceCard.tsx
 │   │   │   │   ├── CategoryRow.tsx
-│   │   │   │   ├── DailySpendChart.tsx
 │   │   │   │   ├── HomeHeader.tsx
-│   │   │   │   └── QuickAction.tsx
+│   │   │   │   ├── QuickAction.tsx
+│   │   │   │   └── SpendingChart.tsx
 │   │   │   └── HomeScreen.tsx
 │   │   ├── profile/
 │   │   │   └── ProfileScreen.tsx
@@ -172,6 +172,7 @@ expensetracker-mobile/
 │   │   │   ├── QueryState.tsx
 │   │   │   ├── Screen.tsx
 │   │   │   ├── SectionHeader.tsx
+│   │   │   ├── SegmentedControl.tsx
 │   │   │   ├── SheetHandle.tsx
 │   │   │   ├── SheetHandle.web.tsx
 │   │   │   ├── StatTile.tsx
