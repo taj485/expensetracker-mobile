@@ -1,4 +1,4 @@
-import type { ExpenseCategory } from '@/core/models/expense.model';
+import type { Expense, ExpenseCategory } from '@/core/models/expense.model';
 import { ALL_CATEGORIES } from '@/core/utils/categoryUtils';
 import { DATE_PERIODS, type DatePeriod, WEEKDAYS, type Weekday } from '@/core/utils/dateUtils';
 
@@ -19,6 +19,8 @@ export interface ExpenseFilterParams {
   weekday?: string;
   /** Comma-separated categories. */
   category?: string;
+  /** Text matched against product names and shops. */
+  q?: string;
 }
 
 export interface ExpenseFilters {
@@ -33,6 +35,8 @@ export interface ExpenseFilters {
   weekday?: Weekday | null;
   /** Empty means every category. */
   categories: ExpenseCategory[];
+  /** Product or shop search, as typed. Empty matches everything. */
+  search?: string;
 }
 
 const MONTH_KEY = /^\d{4}-\d{2}$/;
@@ -55,6 +59,7 @@ export function parseExpenseFilters(params: ExpenseFilterParams, selectedSpaceId
     months,
     period: parsePeriod(params.period, months),
     weekday: WEEKDAYS.includes(params.weekday as Weekday) ? (params.weekday as Weekday) : null,
+    search: params.q ?? '',
     categories,
   };
 }
@@ -68,6 +73,7 @@ export function toExpenseFilterParams(spaceId: number, filters: ExpenseFilters):
     period: filters.months.length > 0 || filters.period === undefined ? undefined : (filters.period ?? 'all'),
     weekday: filters.weekday ?? undefined,
     category: filters.categories.length > 0 ? filters.categories.join(',') : undefined,
+    q: filters.search?.trim() ? filters.search : undefined,
   };
 }
 
@@ -93,4 +99,11 @@ function newestFirst(months: string[]): string[] {
  */
 export function toggleCategory(categories: ExpenseCategory[], category: ExpenseCategory): ExpenseCategory[] {
   return categories.includes(category) ? categories.filter(c => c !== category) : [category, ...categories];
+}
+
+/** Case-insensitive match on the product name or the shop. A blank query matches everything. */
+export function matchesSearch(expense: Pick<Expense, 'description' | 'merchant'>, query: string): boolean {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return true;
+  return expense.description.toLowerCase().includes(needle) || (expense.merchant ?? '').toLowerCase().includes(needle);
 }

@@ -20,6 +20,7 @@ import { formatMoney } from '@/core/utils/moneyUtils';
 import { EmptyState, ErrorState, LoadingState } from '@/shared/components/QueryState';
 import { StatTile } from '@/shared/components/StatTile';
 import { TAB_BAR_CLEARANCE } from '@/shared/components/tab-bar/constants';
+import { SearchField } from '@/shared/components/SearchField';
 import { type UnderlineTab, UnderlineTabs } from '@/shared/components/UnderlineTabs';
 import { spacing, useTheme } from '@/theme';
 
@@ -33,6 +34,7 @@ import {
   parseExpenseFilters,
   toExpenseFilterParams,
   toggleCategory,
+  matchesSearch,
   toggleMonth,
 } from './expenseFilters';
 
@@ -49,12 +51,12 @@ export function ExpensesScreen() {
   // Filters come from the URL, so Home's cards (and deep links) can open a filtered list.
   // Every value is validated by parseExpenseFilters, so the cast only names the expected keys.
   const params = useLocalSearchParams() as ExpenseFilterParams;
-  const { months, period = null, weekday = null, categories } = parseExpenseFilters(params, selectedSpace?.id);
+  const { months, period = null, weekday = null, categories, search = '' } = parseExpenseFilters(params, selectedSpace?.id);
   const setFilter = (patch: Partial<ExpenseFilters>) => {
     if (!selectedSpace) return;
     // This screen's own navigation object, not router.setParams: with tabs, router.setParams can
     // update whichever route the router considers current (e.g. Home) instead of this one.
-    navigation.setParams(toExpenseFilterParams(selectedSpace.id, { months, period, weekday, categories, ...patch }) as never);
+    navigation.setParams(toExpenseFilterParams(selectedSpace.id, { months, period, weekday, categories, search, ...patch }) as never);
   };
   // Stable keys for memoising on the selection (the parsed arrays are new every render).
   const categoryKey = categories.join(',');
@@ -70,10 +72,11 @@ export function ExpensesScreen() {
         e =>
           (wantedMonths.length === 0 || wantedMonths.includes(monthKeyOf(e.date))) &&
           (!range || (dayKeyOf(e.date) >= range.start && dayKeyOf(e.date) <= range.end)) &&
-          (wanted.length === 0 || wanted.includes(e.category)),
+          (wanted.length === 0 || wanted.includes(e.category)) &&
+          matchesSearch(e, search),
       );
     },
-    [expensesQuery.data, monthKey, period, selectedDayKey, categoryKey],
+    [expensesQuery.data, monthKey, period, selectedDayKey, categoryKey, search],
   );
   const receipts = useMemo(() => groupByReceipt(filtered), [filtered]);
   const monthKeys = useMemo(() => monthKeysBack(MONTHS_SHOWN), []);
@@ -163,6 +166,12 @@ export function ExpensesScreen() {
               <StatTile label={selectedDayKey ? formatDayLabel(selectedDayKey) : totalLabel(period, months.length)} value={formatMoney(sumExpenses(filtered))} highlight />
               <StatTile label="Entries" value={String(filtered.length)} />
             </View>
+            <SearchField
+              value={search}
+              onChangeText={text => setFilter({ search: text })}
+              placeholder="Search products or shops"
+              accessibilityLabel="Search expenses"
+            />
           </View>
         }
         ListEmptyComponent={
@@ -218,6 +227,6 @@ function Separator() {
 const styles = StyleSheet.create({
   content: { paddingHorizontal: spacing.lg, paddingBottom: TAB_BAR_CLEARANCE, flexGrow: 1 },
   header: { paddingTop: spacing.sm, paddingBottom: spacing.base },
-  stats: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.sm },
+  stats: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.sm, marginBottom: spacing.base },
   separator: { height: spacing.md },
 });
