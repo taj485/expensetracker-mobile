@@ -56,9 +56,9 @@ export function ProfileScreen() {
         ]}
       />
 
-      <Button title="Sign out" variant="secondary" onPress={signOut} loading={signingOut} />
+      <Button title="Sign out" variant="secondary" onPress={signOut} loading={signingOut} style={styles.signOut} />
       {error && (
-        <AppText variant="footnote" tone="negative" accessibilityRole="alert">
+        <AppText variant="footnote" tone="negative" accessibilityRole="alert" style={styles.error}>
           {error}
         </AppText>
       )}
@@ -69,4 +69,7 @@ export function ProfileScreen() {
 const styles = StyleSheet.create({
   account: { flexDirection: 'row', alignItems: 'center', gap: spacing.base, padding: spacing.base, marginBottom: spacing.base },
   accountText: { flex: 1, gap: spacing['2xs'] },
+  // Sets Sign out apart from the account details above it.
+  signOut: { marginTop: spacing.xl },
+  error: { marginTop: spacing.sm },
 });
