@@ -53,6 +53,10 @@ function EditReceiptForm({ spaceId, originals }: { spaceId: number; originals: E
   const count = edit.drafts.length;
   const total = edit.drafts.reduce((sum, d) => sum + (Number(d.unitPrice) || 0) * (Number(d.quantity) || 0), 0);
   const isReceipt = originals.length > 1;
+  // Saved lines keep their expense id as the draft key, so only those have a page to open.
+  const savedIds = new Set(originals.map(e => e.id));
+  const viewItem = (expenseId: number) =>
+    router.push({ pathname: '/expenses/[expenseId]', params: { expenseId: String(expenseId), spaceId: String(spaceId) } });
 
   const onSave = async () => {
     if (await edit.save()) close();
@@ -129,6 +133,7 @@ function EditReceiptForm({ spaceId, originals }: { spaceId: number; originals: E
           onRemove={() => edit.remove(draft.key)}
           showMerchant={false}
           showDate={false}
+          onView={savedIds.has(draft.key) ? () => viewItem(draft.key) : undefined}
         />
       ))}
 

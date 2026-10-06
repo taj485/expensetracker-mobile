@@ -1,17 +1,27 @@
 import { ScrollView, StyleSheet } from 'react-native';
 
-import { formatMonthKeyShort } from '@/core/utils/dateUtils';
+import { DATE_PERIODS, type DatePeriod, formatMonthKeyShort } from '@/core/utils/dateUtils';
 import { Chip } from '@/shared/components/Chip';
 import { spacing } from '@/theme';
 
 interface MonthChipsProps {
   monthKeys: string[];
-  selected: string | null;
-  onSelect: (monthKey: string | null) => void;
+  /** Selected months; empty means all. */
+  selected: string[];
+  /** The selected rolling period, or null when filtering by month. */
+  period: DatePeriod | null;
+  onToggle: (monthKey: string) => void;
+  onClear: () => void;
+  onSelectPeriod: (period: DatePeriod) => void;
 }
 
-/** Horizontal month filter: "All months" then newest month first. */
-export function MonthChips({ monthKeys, selected, onSelect }: MonthChipsProps) {
+const PERIOD_LABELS: Record<DatePeriod, string> = { 'this-week': 'This week', 'last-week': 'Last week', today: 'Today' };
+
+/**
+ * Horizontal date filter: the rolling periods, "All months", then newest month first. Pick one
+ * period or any number of months; months stay in date order, unlike categories.
+ */
+export function MonthChips({ monthKeys, selected, period, onToggle, onClear, onSelectPeriod }: MonthChipsProps) {
   return (
     <ScrollView
       horizontal
@@ -19,9 +29,12 @@ export function MonthChips({ monthKeys, selected, onSelect }: MonthChipsProps) {
       contentContainerStyle={styles.rail}
       // Bleed to the screen edges so chips scroll off-screen rather than clipping at the padding.
       style={styles.bleed}>
-      <Chip label="All months" selected={selected === null} onPress={() => onSelect(null)} />
+      {DATE_PERIODS.map(p => (
+        <Chip key={p} label={PERIOD_LABELS[p]} selected={period === p} onPress={() => onSelectPeriod(p)} />
+      ))}
+      <Chip label="All months" selected={period === null && selected.length === 0} onPress={onClear} />
       {monthKeys.map(key => (
-        <Chip key={key} label={formatMonthKeyShort(key)} selected={selected === key} onPress={() => onSelect(key)} />
+        <Chip key={key} label={formatMonthKeyShort(key)} selected={selected.includes(key)} onPress={() => onToggle(key)} />
       ))}
     </ScrollView>
   );

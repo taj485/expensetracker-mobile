@@ -1,27 +1,42 @@
 import type { ExpenseCategory } from '@/core/models/expense.model';
 import { ALL_CATEGORIES } from '@/core/utils/categoryUtils';
+import { DATE_PERIODS, type DatePeriod, WEEKDAYS, type Weekday } from '@/core/utils/dateUtils';
 
 /**
  * Expenses filters live in the route's search params, like the web expense list's query params,
  * so other screens can link straight to a filtered view:
- *   ?spaceId=1&month=2026-09&category=Food,Health
+ *   ?spaceId=1&period=last-week&weekday=mon&category=Food,Health
+ *   ?spaceId=1&month=2026-10,2026-09
+ * With no period or month the screen opens on this week.
  */
 export interface ExpenseFilterParams {
   spaceId?: string;
-  /** 'YYYY-MM' */
+  /** Comma-separated 'YYYY-MM' keys. */
   month?: string;
+  /** 'this-week' | 'last-week' | 'today', or 'all' for every month. */
+  period?: string;
+  /** 'mon'…'sun': one day of the selected week. */
+  weekday?: string;
   /** Comma-separated categories. */
   category?: string;
 }
 
 export interface ExpenseFilters {
-  month: string | null;
+  /** Empty means every month. Newest first. */
+  months: string[];
+  /**
+   * A rolling period, or null for month-based filtering (all months when `months` is empty).
+   * Left out (as Home's links do), the screen opens on this week.
+   */
+  period?: DatePeriod | null;
+  /** One day of a week period; null or left out for the whole week. */
+  weekday?: Weekday | null;
   /** Empty means every category. */
   categories: ExpenseCategory[];
 }
 
 const MONTH_KEY = /^\d{4}-\d{2}$/;
-const NO_FILTERS: ExpenseFilters = { month: null, categories: [] };
+const NO_FILTERS: ExpenseFilters = { months: [], period: 'this-week', categories: [] };
 
 /**
  * Filters to apply for the selected space. Filters set for a different space are ignored, so
@@ -35,8 +50,11 @@ export function parseExpenseFilters(params: ExpenseFilterParams, selectedSpaceId
   const categories = requested.filter(
     (c, index): c is ExpenseCategory => ALL_CATEGORIES.includes(c as ExpenseCategory) && requested.indexOf(c) === index,
   );
+  const months = newestFirst((params.month ?? '').split(',').map(m => m.trim()).filter(m => MONTH_KEY.test(m)));
   return {
-    month: params.month && MONTH_KEY.test(params.month) ? params.month : null,
+    months,
+    period: parsePeriod(params.period, months),
+    weekday: WEEKDAYS.includes(params.weekday as Weekday) ? (params.weekday as Weekday) : null,
     categories,
   };
 }
@@ -45,9 +63,28 @@ export function parseExpenseFilters(params: ExpenseFilterParams, selectedSpaceId
 export function toExpenseFilterParams(spaceId: number, filters: ExpenseFilters): Record<keyof ExpenseFilterParams, string | undefined> {
   return {
     spaceId: String(spaceId),
-    month: filters.month ?? undefined,
+    month: filters.months.length > 0 ? filters.months.join(',') : undefined,
+    // Months replace any period; null is stored as 'all' so it doesn't fall back to this week.
+    period: filters.months.length > 0 || filters.period === undefined ? undefined : (filters.period ?? 'all'),
+    weekday: filters.weekday ?? undefined,
     category: filters.categories.length > 0 ? filters.categories.join(',') : undefined,
   };
+}
+
+/** A month in the URL wins over a period; with neither, the screen opens on this week. */
+function parsePeriod(value: string | undefined, months: string[]): DatePeriod | null {
+  if (months.length > 0 || value === 'all') return null;
+  return DATE_PERIODS.includes(value as DatePeriod) ? (value as DatePeriod) : 'this-week';
+}
+
+/** Adds or removes a month, keeping the list newest first. */
+export function toggleMonth(months: string[], month: string): string[] {
+  return months.includes(month) ? months.filter(m => m !== month) : newestFirst([...months, month]);
+}
+
+/** De-duplicated, newest first. 'YYYY-MM' keys sort correctly as strings. */
+function newestFirst(months: string[]): string[] {
+  return [...new Set(months)].sort().reverse();
 }
 
 /**

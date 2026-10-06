@@ -158,9 +158,11 @@ expensetracker-mobile/
 │   │   │   ├── Avatar.tsx
 │   │   │   ├── Button.tsx
 │   │   │   ├── Card.tsx
+│   │   │   ├── CardStack.tsx
 │   │   │   ├── CategoryBadge.tsx
 │   │   │   ├── CategoryPicker.tsx
 │   │   │   ├── Chip.tsx
+│   │   │   ├── Collapsible.tsx
 │   │   │   ├── DateField.tsx
 │   │   │   ├── ExpenseItemCard.tsx
 │   │   │   ├── IconButton.tsx
@@ -173,6 +175,7 @@ expensetracker-mobile/
 │   │   │   ├── SheetHandle.web.tsx
 │   │   │   ├── StatTile.tsx
 │   │   │   ├── TextField.tsx
+│   │   │   ├── UnderlineTabs.tsx
 │   │   │   └── Wordmark.tsx
 │   │   ├── icons/
 │   │   │   ├── AppIcons.tsx
@@ -193,6 +196,7 @@ expensetracker-mobile/
 ├── .env.example
 ├── .gitignore
 ├── AGENTS.md
+├── app.config.js
 ├── app.json
 ├── CLAUDE.md
 ├── eas.json
