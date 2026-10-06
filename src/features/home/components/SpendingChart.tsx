@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Svg, { Line } from 'react-native-svg';
 
 import type { Expense } from '@/core/models/expense.model';
 import { formatDateRange, formatDayLabel, formatMonthKey, formatMonthKeyShort } from '@/core/utils/dateUtils';
+import { selectionTick } from '@/core/utils/haptics';
 import { formatMoney } from '@/core/utils/moneyUtils';
 import { type ChartPeriod, type SpendBucket, spendingBuckets } from '@/core/utils/spendingUtils';
 import { AppText } from '@/shared/components/AppText';
@@ -58,13 +60,15 @@ interface SpendingChartProps {
 /**
  * Spending over the last week, month, six months or year, drawn like the Health app's charts: one
  * bar per day, week or month, with the period's average above. There's no hover on a phone, so
- * tapping a bar shows its total in place of the average; tapping it again goes back.
+ * tapping a bar shows its total in place of the average (tapping it again goes back), and dragging
+ * sideways across the chart moves the selection bar by bar with a haptic tick.
  */
 export function SpendingChart({ expenses }: SpendingChartProps) {
   const styles = useThemedStyles(createStyles);
   const { colors } = useTheme();
   const [period, setPeriod] = useState<ChartPeriod>('week');
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [plotWidth, setPlotWidth] = useState(0);
 
   const { buckets, start, end, average } = spendingBuckets(expenses, period);
   const selected = selectedIndex != null ? buckets[selectedIndex] : null;
@@ -79,6 +83,36 @@ export function SpendingChart({ expenses }: SpendingChartProps) {
     setPeriod(next);
     setSelectedIndex(null);
   };
+
+  // Columns share the width evenly, so the finger's x position picks the bar however thin it is.
+  const indexAt = (x: number) =>
+    Math.min(buckets.length - 1, Math.max(0, Math.floor((x / (plotWidth || 1)) * buckets.length)));
+
+  const toggle = (index: number) => {
+    setSelectedIndex(index === selectedIndex ? null : index);
+    selectionTick();
+  };
+
+  // Only ticks when the drag moves onto a different bar.
+  const scrubTo = (x: number) => {
+    const index = indexAt(x);
+    if (index === selectedIndex) return;
+    setSelectedIndex(index);
+    selectionTick();
+  };
+
+  // A sideways drag scrubs; a vertical one fails here so the page can still scroll.
+  const scrub = Gesture.Pan()
+    .runOnJS(true)
+    .activeOffsetX([-8, 8])
+    .failOffsetY([-12, 12])
+    .onStart(e => scrubTo(e.x))
+    .onUpdate(e => scrubTo(e.x));
+  const tap = Gesture.Tap()
+    .runOnJS(true)
+    .onEnd((e, success) => {
+      if (success) toggle(indexAt(e.x));
+    });
 
   return (
     <View>
@@ -104,61 +138,66 @@ export function SpendingChart({ expenses }: SpendingChartProps) {
       </View>
 
       <View style={styles.plotRow}>
-        <View style={styles.plot}>
-          <Svg style={StyleSheet.absoluteFill}>
-            {ticks.map(value => (
-              <Line
-                key={value}
-                x1="0"
-                x2="100%"
-                y1={Math.max(yOf(value), 0.5)}
-                y2={Math.max(yOf(value), 0.5)}
-                stroke={colors.borderDefault}
-                strokeWidth={1}
-              />
-            ))}
-            {/* Dashed divider before each labelled bar, plus one closing off the right edge. */}
-            {[...buckets.flatMap((b, i) => (b.label ? [i] : [])), buckets.length].map(i => (
-              <Line
-                key={i}
-                x1={xOf(i)}
-                x2={xOf(i)}
-                y1="0"
-                y2="100%"
-                stroke={colors.borderDefault}
-                strokeWidth={1}
-                strokeDasharray="2,3"
-              />
-            ))}
-          </Svg>
+        <GestureDetector gesture={Gesture.Race(scrub, tap)}>
+          <View
+            style={styles.plot}
+            onLayout={e => setPlotWidth(e.nativeEvent.layout.width)}>
+            <Svg style={StyleSheet.absoluteFill}>
+              {ticks.map(value => (
+                <Line
+                  key={value}
+                  x1="0"
+                  x2="100%"
+                  y1={Math.max(yOf(value), 0.5)}
+                  y2={Math.max(yOf(value), 0.5)}
+                  stroke={colors.borderDefault}
+                  strokeWidth={1}
+                />
+              ))}
+              {/* Dashed divider before each labelled bar, plus one closing off the right edge. */}
+              {[...buckets.flatMap((b, i) => (b.label ? [i] : [])), buckets.length].map(i => (
+                <Line
+                  key={i}
+                  x1={xOf(i)}
+                  x2={xOf(i)}
+                  y1="0"
+                  y2="100%"
+                  stroke={colors.borderDefault}
+                  strokeWidth={1}
+                  strokeDasharray="2,3"
+                />
+              ))}
+            </Svg>
 
-          <View style={styles.bars}>
-            {buckets.map((b, i) => {
-              const isSelected = i === selectedIndex;
-              return (
-                // The whole column is the tap target, so thin bars stay easy to hit.
-                <Pressable
-                  key={b.start}
-                  role="button"
-                  aria-label={`${bucketDescription(b, period)}, ${formatMoney(b.total)}`}
-                  aria-selected={isSelected}
-                  onPress={() => setSelectedIndex(isSelected ? null : i)}
-                  style={styles.col}>
-                  {b.total > 0 && (
-                    <View
-                      style={[
-                        styles.bar,
-                        isDense ? styles.barDense : styles.barWide,
-                        selectedIndex != null && !isSelected && styles.barDimmed,
-                        { height: (b.total / scaleMax) * PLOT_HEIGHT },
-                      ]}
-                    />
-                  )}
-                </Pressable>
-              );
-            })}
+            <View style={styles.bars}>
+              {buckets.map((b, i) => {
+                const isSelected = i === selectedIndex;
+                return (
+                  // Touches go to the gesture above; VoiceOver still activates each bar on its own.
+                  <View
+                    key={b.start}
+                    accessible
+                    role="button"
+                    aria-label={`${bucketDescription(b, period)}, ${formatMoney(b.total)}`}
+                    aria-selected={isSelected}
+                    onAccessibilityTap={() => toggle(i)}
+                    style={styles.col}>
+                    {b.total > 0 && (
+                      <View
+                        style={[
+                          styles.bar,
+                          isDense ? styles.barDense : styles.barWide,
+                          selectedIndex != null && !isSelected && styles.barDimmed,
+                          { height: (b.total / scaleMax) * PLOT_HEIGHT },
+                        ]}
+                      />
+                    )}
+                  </View>
+                );
+              })}
+            </View>
           </View>
-        </View>
+        </GestureDetector>
 
         <View style={styles.axis}>
           {ticks.map(value => (

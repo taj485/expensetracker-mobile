@@ -72,6 +72,7 @@ expensetracker-mobile/
 │   │       ├── expenseUtils.ts
 │   │       ├── formDataFile.ts
 │   │       ├── formDataFile.web.ts
+│   │       ├── haptics.ts
 │   │       ├── merchantUtils.ts
 │   │       ├── moneyUtils.ts
 │   │       ├── spendingUtils.ts
