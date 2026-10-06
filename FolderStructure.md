@@ -170,6 +170,7 @@ expensetracker-mobile/
 │   │   │   ├── KeyValueList.tsx
 │   │   │   ├── MerchantLogo.tsx
 │   │   │   ├── QueryState.tsx
+│   │   │   ├── SearchField.tsx
 │   │   │   ├── Screen.tsx
 │   │   │   ├── SectionHeader.tsx
 │   │   │   ├── SegmentedControl.tsx

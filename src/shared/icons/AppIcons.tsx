@@ -147,6 +147,17 @@ export function CloseIcon({ color, size = 16 }: IconProps) {
   );
 }
 
+export function SearchIcon({ color, size = 18 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+      <Path
+        fillRule="evenodd"
+        d="M10.5 3a7.5 7.5 0 0 1 5.96 12.05l4.19 4.19a1.2 1.2 0 0 1-1.7 1.7l-4.19-4.19A7.5 7.5 0 1 1 10.5 3m0 2.4a5.1 5.1 0 1 0 0 10.2 5.1 5.1 0 0 0 0-10.2"
+      />
+    </Svg>
+  );
+}
+
 export function InsightsIcon({ color, size = 17 }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
