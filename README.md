@@ -10,10 +10,12 @@ It signs in with the same Auth0 tenant as the web client and calls the existing 
    npm install
    ```
 2. Copy `.env.example` to `.env.local` and set `EXPO_PUBLIC_AUTH0_CLIENT_ID` to the Auth0 **Native** application's client ID.
-3. In the Auth0 dashboard, add both of these to the Native application's **Allowed Callback URLs** and **Allowed Logout URLs**:
+3. In the Auth0 dashboard, add all of these to the Native application's **Allowed Callback URLs** and **Allowed Logout URLs** (the `.dev` ones are for the development build):
    ```
    com.receiptcave.app.auth0://dev-sizppb5m3zuup43h.us.auth0.com/ios/com.receiptcave.app/callback
    com.receiptcave.app.auth0://dev-sizppb5m3zuup43h.us.auth0.com/android/com.receiptcave.app/callback
+   com.receiptcave.app.dev.auth0://dev-sizppb5m3zuup43h.us.auth0.com/ios/com.receiptcave.app.dev/callback
+   com.receiptcave.app.dev.auth0://dev-sizppb5m3zuup43h.us.auth0.com/android/com.receiptcave.app.dev/callback
    ```
 
 ## Running
@@ -22,6 +24,8 @@ It signs in with the same Auth0 tenant as the web client and calls the existing 
 
 - **Android (local):** install Android Studio with an emulator, then `npx expo run:android`.
 - **iOS / Android (cloud):** `npx eas-cli build --profile development --platform ios` (iOS device installs need an Apple Developer account).
+
+The EAS `development` profile sets `APP_VARIANT=development`, which `app.config.js` uses to build "ReceiptCave Dev" with the bundle ID `com.receiptcave.app.dev`. It installs next to the TestFlight/App Store app instead of replacing it.
 
 Once a development build is installed, start the bundler with `npm start`.
 

@@ -20,6 +20,8 @@ interface ExpenseItemCardProps {
   showMerchant?: boolean;
   /** Hide when the date can't be changed (the API doesn't update dates on existing expenses). */
   showDate?: boolean;
+  /** Opens the saved expense's own page; omitted for lines that aren't saved yet. */
+  onView?: () => void;
 }
 
 /** One editable line item — used when reviewing a scanned receipt and when editing a saved one. */
@@ -32,6 +34,7 @@ export function ExpenseItemCard({
   onRemove,
   showMerchant = true,
   showDate = true,
+  onView,
 }: ExpenseItemCardProps) {
   return (
     <Card style={styles.card}>
@@ -39,13 +42,22 @@ export function ExpenseItemCard({
         <AppText variant="footnote" weight="600" tone="secondary" style={styles.label}>
           Item {index + 1}
         </AppText>
-        {canRemove && (
-          <Pressable accessibilityRole="button" accessibilityLabel={`Remove item ${index + 1}`} onPress={onRemove} hitSlop={spacing.sm}>
-            <AppText variant="subhead" weight="600" tone="negative">
-              Remove
-            </AppText>
-          </Pressable>
-        )}
+        <View style={styles.headerActions}>
+          {onView && (
+            <Pressable accessibilityRole="button" accessibilityLabel={`View item ${index + 1}`} onPress={onView} hitSlop={spacing.sm}>
+              <AppText variant="subhead" weight="600" tone="brand">
+                View
+              </AppText>
+            </Pressable>
+          )}
+          {canRemove && (
+            <Pressable accessibilityRole="button" accessibilityLabel={`Remove item ${index + 1}`} onPress={onRemove} hitSlop={spacing.sm}>
+              <AppText variant="subhead" weight="600" tone="negative">
+                Remove
+              </AppText>
+            </Pressable>
+          )}
+        </View>
       </View>
 
       <TextField label="Description" value={draft.description} onChangeText={description => onChange({ description })} error={errors?.description} />
@@ -90,6 +102,7 @@ export function ExpenseItemCard({
 const styles = StyleSheet.create({
   card: { padding: spacing.base, gap: spacing.md },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  headerActions: { flexDirection: 'row', gap: spacing.base },
   label: { textTransform: 'uppercase', letterSpacing: 0.5 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   price: { flexGrow: 2, flexBasis: 140 },
