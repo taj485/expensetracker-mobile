@@ -22,6 +22,12 @@ export function monthKeyOf(isoDate: string): string {
   return monthKey(new Date(isoDate));
 }
 
+/** The local 'YYYY-MM-DD' an expense date falls on. */
+export function dayKeyOf(isoDate: string): string {
+  const d = new Date(isoDate);
+  return `${monthKey(d)}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 /** The month before a 'YYYY-MM' key. */
 export function previousMonthKey(key: string): string {
   const [year, month] = key.split('-').map(Number);

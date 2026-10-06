@@ -10,12 +10,16 @@ export interface ExpenseFilterParams {
   spaceId?: string;
   /** 'YYYY-MM' */
   month?: string;
+  /** 'today' shows only expenses dated today. */
+  day?: string;
   /** Comma-separated categories. */
   category?: string;
 }
 
 export interface ExpenseFilters {
   month: string | null;
+  /** Only today's expenses. Optional so Home's links can leave it out. */
+  today?: boolean;
   /** Empty means every category. */
   categories: ExpenseCategory[];
 }
@@ -35,8 +39,11 @@ export function parseExpenseFilters(params: ExpenseFilterParams, selectedSpaceId
   const categories = requested.filter(
     (c, index): c is ExpenseCategory => ALL_CATEGORIES.includes(c as ExpenseCategory) && requested.indexOf(c) === index,
   );
+  const month = params.month && MONTH_KEY.test(params.month) ? params.month : null;
   return {
-    month: params.month && MONTH_KEY.test(params.month) ? params.month : null,
+    month,
+    // A day sits inside one month, so a month in the URL wins over a stale ?day.
+    today: params.day === 'today' && month === null,
     categories,
   };
 }
@@ -46,6 +53,7 @@ export function toExpenseFilterParams(spaceId: number, filters: ExpenseFilters):
   return {
     spaceId: String(spaceId),
     month: filters.month ?? undefined,
+    day: filters.today ? 'today' : undefined,
     category: filters.categories.length > 0 ? filters.categories.join(',') : undefined,
   };
 }

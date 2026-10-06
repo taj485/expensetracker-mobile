@@ -7,11 +7,13 @@ import { spacing } from '@/theme';
 interface MonthChipsProps {
   monthKeys: string[];
   selected: string | null;
+  today: boolean;
   onSelect: (monthKey: string | null) => void;
+  onToggleToday: () => void;
 }
 
-/** Horizontal month filter: "All months" then newest month first. */
-export function MonthChips({ monthKeys, selected, onSelect }: MonthChipsProps) {
+/** Horizontal date filter: "Today", "All months", then newest month first. */
+export function MonthChips({ monthKeys, selected, today, onSelect, onToggleToday }: MonthChipsProps) {
   return (
     <ScrollView
       horizontal
@@ -19,9 +21,10 @@ export function MonthChips({ monthKeys, selected, onSelect }: MonthChipsProps) {
       contentContainerStyle={styles.rail}
       // Bleed to the screen edges so chips scroll off-screen rather than clipping at the padding.
       style={styles.bleed}>
-      <Chip label="All months" selected={selected === null} onPress={() => onSelect(null)} />
+      <Chip label="Today" selected={today} onPress={onToggleToday} />
+      <Chip label="All months" selected={!today && selected === null} onPress={() => onSelect(null)} />
       {monthKeys.map(key => (
-        <Chip key={key} label={formatMonthKeyShort(key)} selected={selected === key} onPress={() => onSelect(key)} />
+        <Chip key={key} label={formatMonthKeyShort(key)} selected={!today && selected === key} onPress={() => onSelect(key)} />
       ))}
     </ScrollView>
   );

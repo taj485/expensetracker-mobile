@@ -5,7 +5,7 @@ import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { useSpaceExpenses } from '@/core/queries/expenseQueries';
 import { useToggleStar } from '@/core/queries/spaceQueries';
 import { useSelectedSpace } from '@/core/spaces/SelectedSpaceProvider';
-import { monthKeyOf, monthKeysBack } from '@/core/utils/dateUtils';
+import { dayKeyOf, monthKeyOf, monthKeysBack, todayLocalISODate } from '@/core/utils/dateUtils';
 import { groupByReceipt, sumExpenses } from '@/core/utils/expenseUtils';
 import { formatMoney } from '@/core/utils/moneyUtils';
 import { EmptyState, ErrorState, LoadingState } from '@/shared/components/QueryState';
@@ -38,12 +38,12 @@ export function ExpensesScreen() {
   // Filters come from the URL, so Home's cards (and deep links) can open a filtered list.
   // Every value is validated by parseExpenseFilters, so the cast only names the expected keys.
   const params = useLocalSearchParams() as ExpenseFilterParams;
-  const { month, categories } = parseExpenseFilters(params, selectedSpace?.id);
+  const { month, today, categories } = parseExpenseFilters(params, selectedSpace?.id);
   const setFilter = (patch: Partial<ExpenseFilters>) => {
     if (!selectedSpace) return;
     // This screen's own navigation object, not router.setParams: with tabs, router.setParams can
     // update whichever route the router considers current (e.g. Home) instead of this one.
-    navigation.setParams(toExpenseFilterParams(selectedSpace.id, { month, categories, ...patch }) as never);
+    navigation.setParams(toExpenseFilterParams(selectedSpace.id, { month, today, categories, ...patch }) as never);
   };
   // Stable key for memoising on the selection (the parsed array is new every render).
   const categoryKey = categories.join(',');
@@ -51,11 +51,15 @@ export function ExpensesScreen() {
   const filtered = useMemo(
     () => {
       const wanted = categoryKey ? categoryKey.split(',') : [];
+      const todayKey = todayLocalISODate();
       return (expensesQuery.data ?? []).filter(
-        e => (!month || monthKeyOf(e.date) === month) && (wanted.length === 0 || wanted.includes(e.category)),
+        e =>
+          (!month || monthKeyOf(e.date) === month) &&
+          (!today || dayKeyOf(e.date) === todayKey) &&
+          (wanted.length === 0 || wanted.includes(e.category)),
       );
     },
-    [expensesQuery.data, month, categoryKey],
+    [expensesQuery.data, month, today, categoryKey],
   );
   const receipts = useMemo(() => groupByReceipt(filtered), [filtered]);
   const monthKeys = useMemo(() => monthKeysBack(MONTHS_SHOWN), []);
@@ -105,21 +109,27 @@ export function ExpensesScreen() {
               onShare={() => router.push({ pathname: '/share-space', params: spaceParams })}
               onSettings={() => router.push({ pathname: '/space-settings', params: spaceParams })}
             />
-            <MonthChips monthKeys={monthKeys} selected={month} onSelect={value => setFilter({ month: value })} />
+            <MonthChips
+              monthKeys={monthKeys}
+              selected={month}
+              today={today ?? false}
+              onSelect={value => setFilter({ month: value, today: false })}
+              onToggleToday={() => setFilter({ today: !today, month: null })}
+            />
             <CategoryChips
               selected={categories}
               onToggle={category => setFilter({ categories: toggleCategory(categories, category) })}
               onClear={() => setFilter({ categories: [] })}
             />
             <View style={styles.stats}>
-              <StatTile label={month ? 'Month total' : 'Total'} value={formatMoney(sumExpenses(filtered))} highlight />
+              <StatTile label={today ? 'Today' : month ? 'Month total' : 'Total'} value={formatMoney(sumExpenses(filtered))} highlight />
               <StatTile label="Entries" value={String(filtered.length)} />
             </View>
           </View>
         }
         ListEmptyComponent={
-          month || categories.length > 0 ? (
-            <EmptyState title="No matching expenses" message="Try another month or more categories." />
+          today || month || categories.length > 0 ? (
+            <EmptyState title="No matching expenses" message="Try another date or more categories." />
           ) : (
             <EmptyState title="No expenses yet" message="Scan a receipt or add an expense to get started." />
           )
