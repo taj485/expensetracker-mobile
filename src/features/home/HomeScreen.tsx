@@ -61,13 +61,13 @@ export function HomeScreen() {
         <BalanceCard
           monthKey={monthKey}
           summary={summary}
-          onPress={() => openExpenses({ month: monthKey, categories: [] })}
+          onPress={() => openExpenses({ months: [monthKey], categories: [] })}
         />
 
         <View style={styles.quickRow}>
           <QuickAction label="Scan" Icon={ScanIcon} onPress={() => router.push('/scan')} />
           <QuickAction label="Add" Icon={AddIcon} onPress={() => router.push('/add-expense')} />
-          <QuickAction label="Expenses" Icon={ExpensesIcon} onPress={() => openExpenses({ month: null, categories: [] })} />
+          <QuickAction label="Expenses" Icon={ExpensesIcon} onPress={() => openExpenses({ months: [], categories: [] })} />
         </View>
 
         <SectionHeader title="Spending by category" />
@@ -79,7 +79,7 @@ export function HomeScreen() {
               <CategoryRow
                 key={spend.category}
                 spend={spend}
-                onPress={() => openExpenses({ month: monthKey, categories: [spend.category] })}
+                onPress={() => openExpenses({ months: [monthKey], categories: [spend.category] })}
               />
             ))}
           </View>

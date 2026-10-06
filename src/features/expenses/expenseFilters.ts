@@ -4,11 +4,11 @@ import { ALL_CATEGORIES } from '@/core/utils/categoryUtils';
 /**
  * Expenses filters live in the route's search params, like the web expense list's query params,
  * so other screens can link straight to a filtered view:
- *   ?spaceId=1&month=2026-09&category=Food,Health
+ *   ?spaceId=1&month=2026-10,2026-09&category=Food,Health
  */
 export interface ExpenseFilterParams {
   spaceId?: string;
-  /** 'YYYY-MM' */
+  /** Comma-separated 'YYYY-MM' keys. */
   month?: string;
   /** 'today' shows only expenses dated today. */
   day?: string;
@@ -17,7 +17,8 @@ export interface ExpenseFilterParams {
 }
 
 export interface ExpenseFilters {
-  month: string | null;
+  /** Empty means every month. Newest first. */
+  months: string[];
   /** Only today's expenses. Optional so Home's links can leave it out. */
   today?: boolean;
   /** Empty means every category. */
@@ -25,7 +26,7 @@ export interface ExpenseFilters {
 }
 
 const MONTH_KEY = /^\d{4}-\d{2}$/;
-const NO_FILTERS: ExpenseFilters = { month: null, categories: [] };
+const NO_FILTERS: ExpenseFilters = { months: [], categories: [] };
 
 /**
  * Filters to apply for the selected space. Filters set for a different space are ignored, so
@@ -39,11 +40,11 @@ export function parseExpenseFilters(params: ExpenseFilterParams, selectedSpaceId
   const categories = requested.filter(
     (c, index): c is ExpenseCategory => ALL_CATEGORIES.includes(c as ExpenseCategory) && requested.indexOf(c) === index,
   );
-  const month = params.month && MONTH_KEY.test(params.month) ? params.month : null;
+  const months = newestFirst((params.month ?? '').split(',').map(m => m.trim()).filter(m => MONTH_KEY.test(m)));
   return {
-    month,
+    months,
     // A day sits inside one month, so a month in the URL wins over a stale ?day.
-    today: params.day === 'today' && month === null,
+    today: params.day === 'today' && months.length === 0,
     categories,
   };
 }
@@ -52,10 +53,20 @@ export function parseExpenseFilters(params: ExpenseFilterParams, selectedSpaceId
 export function toExpenseFilterParams(spaceId: number, filters: ExpenseFilters): Record<keyof ExpenseFilterParams, string | undefined> {
   return {
     spaceId: String(spaceId),
-    month: filters.month ?? undefined,
+    month: filters.months.length > 0 ? filters.months.join(',') : undefined,
     day: filters.today ? 'today' : undefined,
     category: filters.categories.length > 0 ? filters.categories.join(',') : undefined,
   };
+}
+
+/** Adds or removes a month, keeping the list newest first. */
+export function toggleMonth(months: string[], month: string): string[] {
+  return months.includes(month) ? months.filter(m => m !== month) : newestFirst([...months, month]);
+}
+
+/** De-duplicated, newest first. 'YYYY-MM' keys sort correctly as strings. */
+function newestFirst(months: string[]): string[] {
+  return [...new Set(months)].sort().reverse();
 }
 
 /**

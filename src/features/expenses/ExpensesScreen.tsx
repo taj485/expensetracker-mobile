@@ -23,6 +23,7 @@ import {
   parseExpenseFilters,
   toExpenseFilterParams,
   toggleCategory,
+  toggleMonth,
 } from './expenseFilters';
 
 const MONTHS_SHOWN = 5;
@@ -38,28 +39,30 @@ export function ExpensesScreen() {
   // Filters come from the URL, so Home's cards (and deep links) can open a filtered list.
   // Every value is validated by parseExpenseFilters, so the cast only names the expected keys.
   const params = useLocalSearchParams() as ExpenseFilterParams;
-  const { month, today, categories } = parseExpenseFilters(params, selectedSpace?.id);
+  const { months, today, categories } = parseExpenseFilters(params, selectedSpace?.id);
   const setFilter = (patch: Partial<ExpenseFilters>) => {
     if (!selectedSpace) return;
     // This screen's own navigation object, not router.setParams: with tabs, router.setParams can
     // update whichever route the router considers current (e.g. Home) instead of this one.
-    navigation.setParams(toExpenseFilterParams(selectedSpace.id, { month, today, categories, ...patch }) as never);
+    navigation.setParams(toExpenseFilterParams(selectedSpace.id, { months, today, categories, ...patch }) as never);
   };
-  // Stable key for memoising on the selection (the parsed array is new every render).
+  // Stable keys for memoising on the selection (the parsed arrays are new every render).
   const categoryKey = categories.join(',');
+  const monthKey = months.join(',');
 
   const filtered = useMemo(
     () => {
       const wanted = categoryKey ? categoryKey.split(',') : [];
+      const wantedMonths = monthKey ? monthKey.split(',') : [];
       const todayKey = todayLocalISODate();
       return (expensesQuery.data ?? []).filter(
         e =>
-          (!month || monthKeyOf(e.date) === month) &&
+          (wantedMonths.length === 0 || wantedMonths.includes(monthKeyOf(e.date))) &&
           (!today || dayKeyOf(e.date) === todayKey) &&
           (wanted.length === 0 || wanted.includes(e.category)),
       );
     },
-    [expensesQuery.data, month, today, categoryKey],
+    [expensesQuery.data, monthKey, today, categoryKey],
   );
   const receipts = useMemo(() => groupByReceipt(filtered), [filtered]);
   const monthKeys = useMemo(() => monthKeysBack(MONTHS_SHOWN), []);
@@ -111,10 +114,11 @@ export function ExpensesScreen() {
             />
             <MonthChips
               monthKeys={monthKeys}
-              selected={month}
+              selected={months}
               today={today ?? false}
-              onSelect={value => setFilter({ month: value, today: false })}
-              onToggleToday={() => setFilter({ today: !today, month: null })}
+              onToggle={key => setFilter({ months: toggleMonth(months, key), today: false })}
+              onClear={() => setFilter({ months: [], today: false })}
+              onToggleToday={() => setFilter({ today: !today, months: [] })}
             />
             <CategoryChips
               selected={categories}
@@ -122,13 +126,13 @@ export function ExpensesScreen() {
               onClear={() => setFilter({ categories: [] })}
             />
             <View style={styles.stats}>
-              <StatTile label={today ? 'Today' : month ? 'Month total' : 'Total'} value={formatMoney(sumExpenses(filtered))} highlight />
+              <StatTile label={totalLabel(today ?? false, months.length)} value={formatMoney(sumExpenses(filtered))} highlight />
               <StatTile label="Entries" value={String(filtered.length)} />
             </View>
           </View>
         }
         ListEmptyComponent={
-          today || month || categories.length > 0 ? (
+          today || months.length > 0 || categories.length > 0 ? (
             <EmptyState title="No matching expenses" message="Try another date or more categories." />
           ) : (
             <EmptyState title="No expenses yet" message="Scan a receipt or add an expense to get started." />
@@ -158,6 +162,12 @@ export function ExpensesScreen() {
       />
     </>
   );
+}
+
+function totalLabel(today: boolean, monthCount: number): string {
+  if (today) return 'Today';
+  if (monthCount === 1) return 'Month total';
+  return monthCount > 1 ? `${monthCount} months total` : 'Total';
 }
 
 function Separator() {
