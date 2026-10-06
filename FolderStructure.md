@@ -103,6 +103,7 @@ expensetracker-mobile/
 │   │   │   ├── components/
 │   │   │   │   ├── BalanceCard.tsx
 │   │   │   │   ├── CategoryRow.tsx
+│   │   │   │   ├── DailySpendChart.tsx
 │   │   │   │   ├── HomeHeader.tsx
 │   │   │   │   └── QuickAction.tsx
 │   │   │   └── HomeScreen.tsx
