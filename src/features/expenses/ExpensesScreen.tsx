@@ -5,7 +5,7 @@ import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { useSpaceExpenses } from '@/core/queries/expenseQueries';
 import { useToggleStar } from '@/core/queries/spaceQueries';
 import { useSelectedSpace } from '@/core/spaces/SelectedSpaceProvider';
-import { dayKeyOf, monthKeyOf, monthKeysBack, todayLocalISODate } from '@/core/utils/dateUtils';
+import { type DatePeriod, dayKeyOf, monthKeyOf, monthKeysBack, periodRange } from '@/core/utils/dateUtils';
 import { groupByReceipt, sumExpenses } from '@/core/utils/expenseUtils';
 import { formatMoney } from '@/core/utils/moneyUtils';
 import { EmptyState, ErrorState, LoadingState } from '@/shared/components/QueryState';
@@ -39,12 +39,12 @@ export function ExpensesScreen() {
   // Filters come from the URL, so Home's cards (and deep links) can open a filtered list.
   // Every value is validated by parseExpenseFilters, so the cast only names the expected keys.
   const params = useLocalSearchParams() as ExpenseFilterParams;
-  const { months, today, categories } = parseExpenseFilters(params, selectedSpace?.id);
+  const { months, period = null, categories } = parseExpenseFilters(params, selectedSpace?.id);
   const setFilter = (patch: Partial<ExpenseFilters>) => {
     if (!selectedSpace) return;
     // This screen's own navigation object, not router.setParams: with tabs, router.setParams can
     // update whichever route the router considers current (e.g. Home) instead of this one.
-    navigation.setParams(toExpenseFilterParams(selectedSpace.id, { months, today, categories, ...patch }) as never);
+    navigation.setParams(toExpenseFilterParams(selectedSpace.id, { months, period, categories, ...patch }) as never);
   };
   // Stable keys for memoising on the selection (the parsed arrays are new every render).
   const categoryKey = categories.join(',');
@@ -54,15 +54,15 @@ export function ExpensesScreen() {
     () => {
       const wanted = categoryKey ? categoryKey.split(',') : [];
       const wantedMonths = monthKey ? monthKey.split(',') : [];
-      const todayKey = todayLocalISODate();
+      const range = period ? periodRange(period) : null;
       return (expensesQuery.data ?? []).filter(
         e =>
           (wantedMonths.length === 0 || wantedMonths.includes(monthKeyOf(e.date))) &&
-          (!today || dayKeyOf(e.date) === todayKey) &&
+          (!range || (dayKeyOf(e.date) >= range.start && dayKeyOf(e.date) <= range.end)) &&
           (wanted.length === 0 || wanted.includes(e.category)),
       );
     },
-    [expensesQuery.data, monthKey, today, categoryKey],
+    [expensesQuery.data, monthKey, period, categoryKey],
   );
   const receipts = useMemo(() => groupByReceipt(filtered), [filtered]);
   const monthKeys = useMemo(() => monthKeysBack(MONTHS_SHOWN), []);
@@ -115,10 +115,11 @@ export function ExpensesScreen() {
             <MonthChips
               monthKeys={monthKeys}
               selected={months}
-              today={today ?? false}
-              onToggle={key => setFilter({ months: toggleMonth(months, key), today: false })}
-              onClear={() => setFilter({ months: [], today: false })}
-              onToggleToday={() => setFilter({ today: !today, months: [] })}
+              period={period}
+              onToggle={key => setFilter({ months: toggleMonth(months, key), period: null })}
+              onClear={() => setFilter({ months: [], period: null })}
+              // Tapping the selected period again shows all months.
+              onSelectPeriod={p => setFilter({ period: p === period ? null : p, months: [] })}
             />
             <CategoryChips
               selected={categories}
@@ -126,13 +127,14 @@ export function ExpensesScreen() {
               onClear={() => setFilter({ categories: [] })}
             />
             <View style={styles.stats}>
-              <StatTile label={totalLabel(today ?? false, months.length)} value={formatMoney(sumExpenses(filtered))} highlight />
+              <StatTile label={totalLabel(period, months.length)} value={formatMoney(sumExpenses(filtered))} highlight />
               <StatTile label="Entries" value={String(filtered.length)} />
             </View>
           </View>
         }
         ListEmptyComponent={
-          today || months.length > 0 || categories.length > 0 ? (
+          // This week is the default, so "no expenses yet" only when the space really is empty.
+          (expensesQuery.data?.length ?? 0) > 0 ? (
             <EmptyState title="No matching expenses" message="Try another date or more categories." />
           ) : (
             <EmptyState title="No expenses yet" message="Scan a receipt or add an expense to get started." />
@@ -164,8 +166,10 @@ export function ExpensesScreen() {
   );
 }
 
-function totalLabel(today: boolean, monthCount: number): string {
-  if (today) return 'Today';
+const PERIOD_TOTAL_LABELS: Record<DatePeriod, string> = { 'this-week': 'This week', 'last-week': 'Last week', today: 'Today' };
+
+function totalLabel(period: DatePeriod | null, monthCount: number): string {
+  if (period) return PERIOD_TOTAL_LABELS[period];
   if (monthCount === 1) return 'Month total';
   return monthCount > 1 ? `${monthCount} months total` : 'Total';
 }
