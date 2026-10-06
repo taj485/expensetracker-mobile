@@ -8,6 +8,7 @@ import { formatMoney } from '@/core/utils/moneyUtils';
 import { uploaderLabel } from '@/core/utils/uploaderUtils';
 import { AppText } from '@/shared/components/AppText';
 import { Card } from '@/shared/components/Card';
+import { CardStack } from '@/shared/components/CardStack';
 import { Collapsible, useOpenProgress } from '@/shared/components/Collapsible';
 import { MerchantLogo } from '@/shared/components/MerchantLogo';
 import { spacing, type Theme, useThemedStyles } from '@/theme';
@@ -30,56 +31,61 @@ export function ReceiptCard({ receipt, showUploader, onPressExpense }: ReceiptCa
   const merchant = receipt.merchant || 'Uncategorised';
   const uploader = showUploader ? uploaderLabel(receipt, 'short') : null;
   const date = formatShortDate(receipt.date);
+  const itemCount = receipt.expenses.length;
+  const itemCountLabel = `${itemCount} ${itemCount === 1 ? 'item' : 'items'}`;
 
   return (
-    <Card>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${merchant}, ${date}${uploader ? `, added by ${uploader}` : ''}, total ${formatMoney(receipt.total)}`}
-        accessibilityHint={expanded ? 'Hides the items' : 'Shows the items'}
-        accessibilityState={{ expanded }}
-        onPress={() => setExpanded(e => !e)}
-        style={({ pressed }) => [styles.head, pressed && styles.pressed]}>
-        <MerchantLogo merchant={receipt.merchant} website={receipt.merchantWebsite} />
-        <View style={styles.ident}>
-          <AppText variant="subhead" weight="600" numberOfLines={1}>
-            {merchant}
+    <CardStack expanded={expanded} count={itemCount}>
+      <Card>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${merchant}, ${date}${uploader ? `, added by ${uploader}` : ''}, total ${formatMoney(receipt.total)}, ${itemCountLabel}`}
+          accessibilityHint={expanded ? 'Hides the items' : 'Shows the items'}
+          accessibilityState={{ expanded }}
+          onPress={() => setExpanded(e => !e)}
+          style={({ pressed }) => [styles.head, pressed && styles.pressed]}>
+          <MerchantLogo merchant={receipt.merchant} website={receipt.merchantWebsite} />
+          <View style={styles.ident}>
+            <AppText variant="subhead" weight="600" numberOfLines={1}>
+              {merchant}
+            </AppText>
+            <AppText variant="caption1" tone="secondary" numberOfLines={1}>
+              {date}
+              {` · ${itemCountLabel}`}
+              {uploader && (
+                <>
+                  {' · Added by '}
+                  <AppText variant="caption1" weight="600" tone={receipt.createdByCurrentUser ? 'brand' : 'secondary'}>
+                    {uploader}
+                  </AppText>
+                </>
+              )}
+            </AppText>
+          </View>
+          <AppText variant="headline" weight="700" numeric>
+            {formatMoney(receipt.total)}
           </AppText>
-          <AppText variant="caption1" tone="secondary" numberOfLines={1}>
-            {date}
-            {uploader && (
-              <>
-                {' · Added by '}
-                <AppText variant="caption1" weight="600" tone={receipt.createdByCurrentUser ? 'brand' : 'secondary'}>
-                  {uploader}
-                </AppText>
-              </>
-            )}
-          </AppText>
-        </View>
-        <AppText variant="headline" weight="700" numeric>
-          {formatMoney(receipt.total)}
-        </AppText>
-        <Animated.View style={chevronStyle} importantForAccessibility="no">
-          <AppText variant="headline" tone="muted">
-            ›
-          </AppText>
-        </Animated.View>
-      </Pressable>
+          <Animated.View style={chevronStyle} importantForAccessibility="no">
+            <AppText variant="headline" tone="muted">
+              ›
+            </AppText>
+          </Animated.View>
+        </Pressable>
 
-      <Collapsible expanded={expanded}>
-        <View style={styles.items}>
-          {receipt.expenses.map((expense, index) => (
-            <ReceiptItemRow
-              key={expense.id}
-              expense={expense}
-              isLast={index === receipt.expenses.length - 1}
-              onPress={() => onPressExpense(expense.id)}
-            />
-          ))}
-        </View>
-      </Collapsible>
-    </Card>
+        <Collapsible expanded={expanded}>
+          <View style={styles.items}>
+            {receipt.expenses.map((expense, index) => (
+              <ReceiptItemRow
+                key={expense.id}
+                expense={expense}
+                isLast={index === receipt.expenses.length - 1}
+                onPress={() => onPressExpense(expense.id)}
+              />
+            ))}
+          </View>
+        </Collapsible>
+      </Card>
+    </CardStack>
   );
 }
 

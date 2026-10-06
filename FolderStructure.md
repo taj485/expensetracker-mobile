@@ -158,6 +158,7 @@ expensetracker-mobile/
 │   │   │   ├── Avatar.tsx
 │   │   │   ├── Button.tsx
 │   │   │   ├── Card.tsx
+│   │   │   ├── CardStack.tsx
 │   │   │   ├── CategoryBadge.tsx
 │   │   │   ├── CategoryPicker.tsx
 │   │   │   ├── Chip.tsx
