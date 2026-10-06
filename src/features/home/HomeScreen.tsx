@@ -90,7 +90,7 @@ export function HomeScreen() {
 
   return (
     <ScrollScreen headerless onRefresh={refresh} refreshing={expensesQuery.isRefetching}>
-      <HomeHeader name={user?.givenName ?? user?.name} />
+      <HomeHeader name={user?.givenName ?? user?.name} onPressAvatar={() => router.navigate('/profile')} />
       {renderBody()}
     </ScrollScreen>
   );

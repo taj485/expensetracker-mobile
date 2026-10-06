@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/shared/components/AppText';
 import { Avatar } from '@/shared/components/Avatar';
@@ -6,6 +6,7 @@ import { spacing } from '@/theme';
 
 interface HomeHeaderProps {
   name: string | undefined;
+  onPressAvatar: () => void;
 }
 
 function greetingFor(hour: number): string {
@@ -14,7 +15,7 @@ function greetingFor(hour: number): string {
   return 'Good evening';
 }
 
-export function HomeHeader({ name }: HomeHeaderProps) {
+export function HomeHeader({ name, onPressAvatar }: HomeHeaderProps) {
   return (
     <View style={styles.row}>
       <View style={styles.text}>
@@ -25,7 +26,14 @@ export function HomeHeader({ name }: HomeHeaderProps) {
           {name ?? 'there'}
         </AppText>
       </View>
-      <Avatar name={name} />
+      <Pressable
+        role="button"
+        aria-label="Open profile"
+        onPress={onPressAvatar}
+        hitSlop={spacing.sm}
+        style={({ pressed }) => pressed && styles.pressed}>
+        <Avatar name={name} />
+      </Pressable>
     </View>
   );
 }
@@ -33,4 +41,5 @@ export function HomeHeader({ name }: HomeHeaderProps) {
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingBottom: spacing.lg },
   text: { flex: 1 },
+  pressed: { opacity: 0.6 },
 });
