@@ -72,6 +72,7 @@ expensetracker-mobile/
 │   │       ├── expenseUtils.ts
 │   │       ├── formDataFile.ts
 │   │       ├── formDataFile.web.ts
+│   │       ├── haptics.ts
 │   │       ├── merchantUtils.ts
 │   │       ├── moneyUtils.ts
 │   │       ├── spendingUtils.ts
@@ -104,7 +105,8 @@ expensetracker-mobile/
 │   │   │   │   ├── BalanceCard.tsx
 │   │   │   │   ├── CategoryRow.tsx
 │   │   │   │   ├── HomeHeader.tsx
-│   │   │   │   └── QuickAction.tsx
+│   │   │   │   ├── QuickAction.tsx
+│   │   │   │   └── SpendingChart.tsx
 │   │   │   └── HomeScreen.tsx
 │   │   ├── profile/
 │   │   │   └── ProfileScreen.tsx
@@ -169,8 +171,10 @@ expensetracker-mobile/
 │   │   │   ├── KeyValueList.tsx
 │   │   │   ├── MerchantLogo.tsx
 │   │   │   ├── QueryState.tsx
+│   │   │   ├── SearchField.tsx
 │   │   │   ├── Screen.tsx
 │   │   │   ├── SectionHeader.tsx
+│   │   │   ├── SegmentedControl.tsx
 │   │   │   ├── SheetHandle.tsx
 │   │   │   ├── SheetHandle.web.tsx
 │   │   │   ├── StatTile.tsx

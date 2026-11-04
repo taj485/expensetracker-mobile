@@ -19,6 +19,7 @@ import { BalanceCard } from './components/BalanceCard';
 import { CategoryRow } from './components/CategoryRow';
 import { HomeHeader } from './components/HomeHeader';
 import { QuickAction } from './components/QuickAction';
+import { SpendingChart } from './components/SpendingChart';
 
 export function HomeScreen() {
   const router = useRouter();
@@ -70,6 +71,16 @@ export function HomeScreen() {
           <QuickAction label="Expenses" Icon={ExpensesIcon} onPress={() => openExpenses({ months: [], categories: [] })} />
         </View>
 
+        {/* Hidden for a space with no expenses at all; the category section's empty state covers it. */}
+        {expenses && expenses.length > 0 && (
+          <>
+            <SectionHeader title="Spending" />
+            <View style={styles.chart}>
+              <SpendingChart expenses={expenses} />
+            </View>
+          </>
+        )}
+
         <SectionHeader title="Spending by category" />
         {categories.length === 0 ? (
           <EmptyState title="Nothing spent yet this month" message="Scan a receipt to see where it goes." />
@@ -99,5 +110,6 @@ export function HomeScreen() {
 const styles = StyleSheet.create({
   spaceName: { marginBottom: spacing.sm },
   quickRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg },
+  chart: { marginBottom: spacing.lg },
   categoryList: { gap: spacing.sm },
 });

@@ -3,7 +3,9 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo } from 'react';
+import { StyleSheet } from 'react-native';
 import { Auth0Provider } from 'react-native-auth0';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { env } from '@/config/env';
 import { queryClient, useAppFocusRefetch } from '@/core/api/queryClient';
@@ -16,14 +18,17 @@ export default function RootLayout() {
   useAppFocusRefetch();
 
   return (
-    <Auth0Provider domain={env.auth0.domain} clientId={env.auth0.clientId}>
-      <QueryClientProvider client={queryClient}>
-        <NavigationTheme>
-          <StatusBar style="auto" />
-          <RootNavigator />
-        </NavigationTheme>
-      </QueryClientProvider>
-    </Auth0Provider>
+    // Lets gestures such as dragging across the spending chart work anywhere in the app.
+    <GestureHandlerRootView style={styles.root}>
+      <Auth0Provider domain={env.auth0.domain} clientId={env.auth0.clientId}>
+        <QueryClientProvider client={queryClient}>
+          <NavigationTheme>
+            <StatusBar style="auto" />
+            <RootNavigator />
+          </NavigationTheme>
+        </QueryClientProvider>
+      </Auth0Provider>
+    </GestureHandlerRootView>
   );
 }
 
@@ -82,3 +87,5 @@ function RootNavigator() {
     </Stack>
   );
 }
+
+const styles = StyleSheet.create({ root: { flex: 1 } });
