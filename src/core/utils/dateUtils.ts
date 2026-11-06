@@ -15,10 +15,8 @@ export function todayLocalISODate(): string {
   return isoDay(new Date());
 }
 
-/** A rolling date filter on the expenses screen. Weeks run Monday to Sunday. */
-export type DatePeriod = 'this-week' | 'last-week' | 'today';
-
-export const DATE_PERIODS: readonly DatePeriod[] = ['today', 'this-week', 'last-week'];
+/** A rolling range of days, used by the spending chart's buckets. Weeks run Monday to Sunday. */
+export type DatePeriod = 'today' | 'this-week';
 
 /** First and last local day ('YYYY-MM-DD', inclusive) of a period, relative to `now`. */
 export function periodRange(period: DatePeriod, now = new Date()): { start: string; end: string } {
@@ -28,36 +26,10 @@ export function periodRange(period: DatePeriod, now = new Date()): { start: stri
   }
   // getDay() is 0 for Sunday, so shift it to make Monday day 0.
   const daysSinceMonday = (now.getDay() + 6) % 7;
-  const weeksBack = period === 'last-week' ? 1 : 0;
   // Building from y/m/d lets Date roll over month and year ends, and dodges DST hour shifts.
-  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysSinceMonday - 7 * weeksBack);
+  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysSinceMonday);
   const sunday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6);
   return { start: isoDay(monday), end: isoDay(sunday) };
-}
-
-export type Weekday = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
-
-export const WEEKDAYS: readonly Weekday[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-
-/** One day of a week period, for the day tabs: { key: 'mon', date: '2026-10-05', name: 'Mon', dayOfMonth: 5, ... }. */
-export interface WeekDay {
-  key: Weekday;
-  date: string;
-  name: string;
-  dayOfMonth: number;
-  /** Still to come, so it can't have expenses yet. */
-  isFuture: boolean;
-}
-
-/** The seven days, Monday to Sunday, of this week or last week. */
-export function weekDays(period: 'this-week' | 'last-week', now = new Date()): WeekDay[] {
-  const [year, month, day] = periodRange(period, now).start.split('-').map(Number);
-  const today = isoDay(now);
-  return WEEKDAYS.map((key, i) => {
-    const d = new Date(year, month - 1, day + i);
-    const date = isoDay(d);
-    return { key, date, name: d.toLocaleDateString(LOCALE, { weekday: 'short' }), dayOfMonth: d.getDate(), isFuture: date > today };
-  });
 }
 
 /** '2026-10-05' becomes 'Mon 5 Oct'. */
