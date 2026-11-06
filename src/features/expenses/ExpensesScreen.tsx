@@ -68,7 +68,6 @@ export function ExpensesScreen() {
   const receipts = useMemo(() => groupByReceipt(filtered), [filtered]);
   const monthKeys = useMemo(() => monthKeysBack(MONTHS_SHOWN), []);
 
-
   const retry = () => {
     refetch();
     // refetch() ignores `enabled`, so only call it once there is a space to load.
