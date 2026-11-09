@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { env } from '@/config/env';
 import { isUserCancelled } from '@/core/auth/authErrors';
 import { useSession } from '@/core/auth/useSession';
+import { useDeleteAccount } from '@/core/queries/accountQueries';
 import { useSelectedSpace } from '@/core/spaces/SelectedSpaceProvider';
 import { AppText } from '@/shared/components/AppText';
 import { Avatar } from '@/shared/components/Avatar';
@@ -12,6 +13,7 @@ import { Button } from '@/shared/components/Button';
 import { Card } from '@/shared/components/Card';
 import { KeyValueList } from '@/shared/components/KeyValueList';
 import { ScrollScreen } from '@/shared/components/Screen';
+import { confirm } from '@/shared/utils/confirm';
 import { spacing } from '@/theme';
 
 export function ProfileScreen() {
@@ -19,6 +21,7 @@ export function ProfileScreen() {
   const { spaces } = useSelectedSpace();
   const [signingOut, setSigningOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const deleteAccount = useDeleteAccount();
 
   async function signOut() {
     setSigningOut(true);
@@ -33,6 +36,19 @@ export function ProfileScreen() {
       }
     } finally {
       setSigningOut(false);
+    }
+  }
+
+  async function confirmDeleteAccount() {
+    const confirmed = await confirm({
+      title: 'Delete your account?',
+      message:
+        "This permanently deletes your Recave account, your personal spaces and their expenses and receipt photos. You'll be removed from spaces you share with others. This can't be undone.",
+      confirmLabel: 'Delete account',
+      destructive: true,
+    });
+    if (confirmed) {
+      deleteAccount.mutate();
     }
   }
 
@@ -60,6 +76,19 @@ export function ProfileScreen() {
       {error && (
         <AppText variant="footnote" tone="negative" accessibilityRole="alert">
           {error}
+        </AppText>
+      )}
+
+      <Button
+        title="Delete account"
+        variant="danger"
+        onPress={confirmDeleteAccount}
+        loading={deleteAccount.isPending}
+        disabled={signingOut}
+      />
+      {deleteAccount.isError && (
+        <AppText variant="footnote" tone="negative" accessibilityRole="alert">
+          {"Couldn't delete your account. Check your connection and try again."}
         </AppText>
       )}
     </ScrollScreen>
