@@ -62,6 +62,9 @@ function ScanFlow({ spaceId }: { spaceId: number }) {
           photo={scan.photo}
           drafts={scan.drafts}
           draftErrors={scan.draftErrors}
+          receiptDiscount={scan.receiptDiscount}
+          receiptDiscountError={scan.receiptDiscountError}
+          onReceiptDiscountChange={scan.updateReceiptDiscount}
           error={scan.error}
           photoUploadFailed={scan.photoUploadFailed}
           onChange={scan.updateDraft}

@@ -1,6 +1,8 @@
 import { ApiError, type ApiClient, type DownloadedFile } from '@/core/api/apiClient';
 import type { CreateExpenseTableCommand } from '@/core/models/expense-table.model';
-import type { AddExpenseCommand, Expense } from '@/core/models/expense.model';
+import type { AddExpenseCommand, Expense, UpdateExpenseCommand } from '@/core/models/expense.model';
+
+import { itemDiscountError, receiptDiscountError } from '@/core/utils/discountUtils';
 
 import { createSampleStore, SAMPLE_USER, SAMPLE_USER_ID, sampleExtraction } from './sampleData';
 import { sampleFile } from './sampleFile';
@@ -125,7 +127,10 @@ async function handle(method: string, path: string, body?: unknown): Promise<unk
       return { imageReference: `sample/receipt-${Date.now()}.jpg` };
     }
     if (method === 'POST' && action === 'batch') {
-      const { items } = body as { items: AddExpenseCommand[] };
+      const { items, receiptDiscount = 0 } = body as { items: AddExpenseCommand[]; receiptDiscount?: number };
+      // Same check as the API: a bad receipt discount rejects the whole batch.
+      const receiptError = receiptDiscountError(items, receiptDiscount);
+      if (receiptError) throw new ApiError(400, JSON.stringify({ error: receiptError }));
       const receiptId = store.nextReceiptId++;
       const added = items.map(item => ({
         id: store.nextExpenseId++,
@@ -139,6 +144,9 @@ async function handle(method: string, path: string, body?: unknown): Promise<unk
         merchant: item.merchant,
         merchantWebsite: null,
         receiptId: items.length > 1 ? receiptId : null,
+        discount: item.discount ?? 0,
+        // A one-item sample receipt has no receipt id, so its receipt discount has nowhere to go (story Q4).
+        receiptDiscount: items.length > 1 ? receiptDiscount : 0,
         // Like the API, the uploader is whoever made the request.
         createdByEmail: SAMPLE_USER.email,
         createdByCurrentUser: true,
@@ -162,6 +170,8 @@ async function handle(method: string, path: string, body?: unknown): Promise<unk
         merchant: item.merchant,
         merchantWebsite: null,
         receiptId: null,
+        discount: item.discount ?? 0,
+        receiptDiscount: 0,
         createdByEmail: SAMPLE_USER.email,
         createdByCurrentUser: true,
       });
@@ -170,18 +180,36 @@ async function handle(method: string, path: string, body?: unknown): Promise<unk
 
     if (expenseId == null && method === 'GET') return clone(expenses);
 
+    // PUT /expensetable/{id}/expenses/by-receipt/{receiptId}/discount
+    if (method === 'PUT' && action === 'by-receipt' && segments[5] === 'discount') {
+      const receiptId = Number(segments[4]);
+      const lines = expenses.filter(e => e.receiptId === receiptId);
+      if (lines.length === 0) throw new ApiError(404, JSON.stringify({ error: `Receipt with id ${receiptId} was not found` }));
+      const { receiptDiscount } = body as { receiptDiscount: number };
+      // Same check as the API, against the receipt's current lines.
+      const receiptError = receiptDiscountError(lines, receiptDiscount);
+      if (receiptError) throw new ApiError(400, JSON.stringify({ error: receiptError }));
+      lines.forEach(line => (line.receiptDiscount = receiptDiscount));
+      return undefined;
+    }
+
     if (expenseId != null) {
       const index = expenses.findIndex(e => e.id === expenseId);
       if (index === -1) throw new ApiError(404, `Sample data: expense ${expenseId} not found`);
       if (method === 'GET') return clone(expenses[index]);
       if (method === 'PUT') {
-        const update = body as { unitPrice: number; quantity: number; category: Expense['category']; description: string; merchant: string | null };
+        const { discount, ...update } = body as UpdateExpenseCommand & { id: number };
         const current = expenses[index];
+        // Like the API: an absent discount keeps the stored one, and the result must fit the new line total.
+        const nextDiscount = discount ?? current.discount ?? 0;
+        const discountError = itemDiscountError({ ...update, discount: nextDiscount });
+        if (discountError) throw new ApiError(400, JSON.stringify({ error: discountError }));
         const merchantChanged = current.merchant !== update.merchant;
         // Like the API: date is untouched, and a new merchant name loses the old merchant's website.
         expenses[index] = {
           ...current,
           ...update,
+          discount: nextDiscount,
           merchantWebsite: merchantChanged ? null : current.merchantWebsite,
         };
         return undefined;

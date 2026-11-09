@@ -15,6 +15,10 @@ export interface Expense {
   merchant: string | null;
   merchantWebsite: string | null;
   receiptId: number | null;
+  /** Discount on this whole line, in £. Missing (older API, or saved before discounts) means 0. */
+  discount?: number;
+  /** Its receipt's discount, repeated on every line of the receipt. Missing means 0. */
+  receiptDiscount?: number;
   /** Email of whoever added it; null for expenses added before uploaders were recorded. */
   createdByEmail: string | null;
   /** True when the signed-in user added it. */
@@ -29,6 +33,8 @@ export interface AddExpenseCommand {
   description: string;
   date: string;
   merchant: string | null;
+  /** Discount on this whole line, in £. */
+  discount: number;
 }
 
 export interface UpdateExpenseCommand {
@@ -37,6 +43,8 @@ export interface UpdateExpenseCommand {
   category: ExpenseCategory;
   description: string;
   merchant: string | null;
+  /** Replaces the stored line discount (0 clears it); omitted keeps it. */
+  discount?: number;
 }
 
 export interface CategoryStat {
@@ -64,6 +72,10 @@ export interface ExtractedExpense {
   quantity: number;
   merchant: string | null;
   merchantWebsite: string | null;
+  /** Discount the scan found on this line. Missing means 0. */
+  discount?: number;
+  /** Discount the scan found on the whole receipt, repeated on every item. Missing means 0. */
+  receiptDiscount?: number;
 }
 
 export interface BatchItemError {

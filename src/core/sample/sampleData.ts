@@ -16,6 +16,8 @@ interface LineItem {
   category: ExpenseCategory;
   unitPrice: number;
   quantity?: number;
+  /** Discount on the whole line, in £. */
+  discount?: number;
 }
 
 interface SampleReceipt {
@@ -24,6 +26,8 @@ interface SampleReceipt {
   /** Days before today. */
   daysAgo: number;
   items: LineItem[];
+  /** Discount on the whole receipt, after item discounts, in £. */
+  receiptDiscount?: number;
 }
 
 const HOUSEHOLD: SampleReceipt[] = [
@@ -33,10 +37,11 @@ const HOUSEHOLD: SampleReceipt[] = [
     daysAgo: 1,
     items: [
       { description: 'Large Broccoli 500g', category: 'Food', unitPrice: 0.89, quantity: 2 },
-      { description: 'Semi Skimmed Milk 4pt', category: 'Food', unitPrice: 1.65, quantity: 2 },
+      { description: 'Semi Skimmed Milk 4pt', category: 'Food', unitPrice: 1.65, quantity: 2, discount: 0.5 },
       { description: 'Finest Rose & Lily Bouquet', category: 'Entertainment', unitPrice: 18 },
       { description: 'Sourdough Loaf', category: 'Food', unitPrice: 2.2 },
     ],
+    receiptDiscount: 1.5,
   },
   {
     merchant: 'Boots',
@@ -89,6 +94,8 @@ const HOUSEHOLD: SampleReceipt[] = [
       { description: 'Flat White', category: 'Food', unitPrice: 3.45 },
       { description: 'Chicken & Avocado Sandwich', category: 'Food', unitPrice: 5.99 },
     ],
+    // Meal deal: covers both items, so it's a receipt discount.
+    receiptDiscount: 2,
   },
   {
     merchant: 'Thames Water',
@@ -199,21 +206,24 @@ function toExpenses(receipts: SampleReceipt[], uploaders: string[]): Expense[] {
       merchant: receipt.merchant,
       merchantWebsite: receipt.website,
       receiptId,
+      discount: item.discount ?? 0,
+      receiptDiscount: receiptId != null ? (receipt.receiptDiscount ?? 0) : 0,
       createdByEmail: uploader,
       createdByCurrentUser: uploader === SAMPLE_USER.email,
     }));
   });
 }
 
-/** What the sample "AI" reads off any photo: a small supermarket shop dated today. */
+/** What the sample "AI" reads off any photo: a small supermarket shop dated today, with discounts. */
 export function sampleExtraction(): ExtractedExpense[] {
   const today = new Date();
   const date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  const base = { merchant: 'Tesco Express', merchantWebsite: 'tesco.com', date };
+  // A Clubcard price on the toothpaste, and a 50p coupon on the whole shop.
+  const base = { merchant: 'Tesco Express', merchantWebsite: 'tesco.com', date, receiptDiscount: 0.5 };
   return [
-    { ...base, description: 'Semi Skimmed Milk 2pt', category: 'Food', unitPrice: 1.45, quantity: 1 },
-    { ...base, description: 'Hovis Wholemeal Bread', category: 'Food', unitPrice: 1.6, quantity: 1 },
-    { ...base, description: 'Colgate Toothpaste 75ml', category: 'Health', unitPrice: 2.25, quantity: 2 },
+    { ...base, description: 'Semi Skimmed Milk 2pt', category: 'Food', unitPrice: 1.45, quantity: 1, discount: 0 },
+    { ...base, description: 'Hovis Wholemeal Bread', category: 'Food', unitPrice: 1.6, quantity: 1, discount: 0 },
+    { ...base, description: 'Colgate Toothpaste 75ml', category: 'Health', unitPrice: 2.25, quantity: 2, discount: 1 },
   ];
 }
 

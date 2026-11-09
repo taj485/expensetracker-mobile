@@ -5,12 +5,15 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import type { Expense } from '@/core/models/expense.model';
 import { useSpaceExpenses } from '@/core/queries/expenseQueries';
 import { formatMediumDate } from '@/core/utils/dateUtils';
+import { parseDiscount, receiptBreakdown } from '@/core/utils/discountUtils';
+import { toLine } from '@/core/utils/expenseDraft';
 import { formatMoney } from '@/core/utils/moneyUtils';
 import { AppText } from '@/shared/components/AppText';
 import { Button } from '@/shared/components/Button';
 import { Card } from '@/shared/components/Card';
 import { ExpenseItemCard } from '@/shared/components/ExpenseItemCard';
 import { EmptyState, ErrorState, LoadingState } from '@/shared/components/QueryState';
+import { ReceiptBreakdownRows } from '@/shared/components/ReceiptBreakdownRows';
 import { TAB_BAR_CLEARANCE } from '@/shared/components/tab-bar/constants';
 import { TextField } from '@/shared/components/TextField';
 import { confirm } from '@/shared/utils/confirm';
@@ -51,7 +54,9 @@ function EditReceiptForm({ spaceId, originals }: { spaceId: number; originals: E
   const close = () => (router.canGoBack() ? router.back() : router.replace('/expenses'));
 
   const count = edit.drafts.length;
-  const total = edit.drafts.reduce((sum, d) => sum + (Number(d.unitPrice) || 0) * (Number(d.quantity) || 0), 0);
+  // Scanned receipts carry discounts; a manual expense has no receipt, so no discount fields.
+  const hasDiscounts = receiptId != null;
+  const breakdown = receiptBreakdown(edit.drafts.map(toLine), hasDiscounts ? parseDiscount(edit.receiptDiscount) || 0 : 0);
   const isReceipt = originals.length > 1;
   // Saved lines keep their expense id as the draft key, so only those have a page to open.
   const savedIds = new Set(originals.map(e => e.id));
@@ -93,9 +98,20 @@ function EditReceiptForm({ spaceId, originals }: { spaceId: number; originals: E
             </AppText>
           </View>
           <AppText variant="title3" weight="700" numeric>
-            {formatMoney(total)}
+            {formatMoney(breakdown.total)}
           </AppText>
         </View>
+        <ReceiptBreakdownRows breakdown={breakdown} />
+        {hasDiscounts && (
+          <TextField
+            label="Receipt discount (£)"
+            value={edit.receiptDiscount}
+            onChangeText={edit.setReceiptDiscount}
+            keyboardType="decimal-pad"
+            placeholder="None"
+            error={edit.receiptDiscountError}
+          />
+        )}
         {receiptId != null && (
           <Button
             title="Download receipt"
@@ -116,7 +132,7 @@ function EditReceiptForm({ spaceId, originals }: { spaceId: number; originals: E
           {edit.saveError}
         </AppText>
       )}
-      {Object.keys(edit.errors).length > 0 && (
+      {(Object.keys(edit.errors).length > 0 || edit.receiptDiscountError != null) && (
         <AppText variant="footnote" tone="negative" accessibilityRole="alert">
           Fix the highlighted fields to save.
         </AppText>
@@ -133,6 +149,7 @@ function EditReceiptForm({ spaceId, originals }: { spaceId: number; originals: E
           onRemove={() => edit.remove(draft.key)}
           showMerchant={false}
           showDate={false}
+          showDiscount={hasDiscounts}
           onView={savedIds.has(draft.key) ? () => viewItem(draft.key) : undefined}
         />
       ))}

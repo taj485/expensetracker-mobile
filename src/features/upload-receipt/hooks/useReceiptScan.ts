@@ -6,7 +6,8 @@ import { useApiClient } from '@/core/api/useApiClient';
 import { isSessionEnded } from '@/core/auth/authErrors';
 import { queryKeys } from '@/core/queries/queryKeys';
 import { addExpensesBatch, extractReceipt, uploadReceiptImage } from '@/core/services/expenseService';
-import { type DraftErrors, type DraftExpense, toCommand, toDraft, validateDraft } from '@/core/utils/expenseDraft';
+import { discountText, parseDiscount, receiptDiscountTextError } from '@/core/utils/discountUtils';
+import { type DraftErrors, type DraftExpense, toCommand, toDraft, toLine, validateDraft } from '@/core/utils/expenseDraft';
 import { confirm } from '@/shared/utils/confirm';
 
 import {
@@ -42,6 +43,9 @@ export function useReceiptScan(extractSpaceId: number) {
   const [photo, setPhoto] = useState<ReceiptPhoto | null>(null);
   const [drafts, setDrafts] = useState<DraftExpense[]>([]);
   const [draftErrors, setDraftErrors] = useState<Record<number, DraftErrors>>({});
+  // The scan repeats the receipt discount on every item; held once here as field text.
+  const [receiptDiscount, setReceiptDiscount] = useState('');
+  const [receiptDiscountError, setReceiptDiscountError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [photoUploadFailed, setPhotoUploadFailed] = useState(false);
@@ -100,6 +104,8 @@ export function useReceiptScan(extractSpaceId: number) {
       }
       setDrafts(items.map(toDraft));
       setDraftErrors({});
+      setReceiptDiscount(discountText(items[0].receiptDiscount));
+      setReceiptDiscountError(null);
       setStep('review');
       // A failed image upload shouldn't block saving the expenses themselves — they're saved
       // without a photo, and the review step says so. Cancels and session ends aren't failures.
@@ -131,6 +137,11 @@ export function useReceiptScan(extractSpaceId: number) {
     setDraftErrors(({ [key]: _, ...rest }) => rest);
   }
 
+  function updateReceiptDiscount(text: string) {
+    setReceiptDiscount(text);
+    setReceiptDiscountError(null);
+  }
+
   function removeDraft(key: number) {
     setDrafts(list => list.filter(d => d.key !== key));
   }
@@ -140,9 +151,12 @@ export function useReceiptScan(extractSpaceId: number) {
     const errors = Object.fromEntries(
       drafts.map(d => [d.key, validateDraft(d)] as const).filter(([, e]) => Object.keys(e).length > 0),
     );
+    const receiptError = receiptDiscountTextError(drafts.map(toLine), receiptDiscount);
     setDraftErrors(errors);
-    if (Object.keys(errors).length === 0) setStep('spaces');
-    return Object.keys(errors).length === 0;
+    setReceiptDiscountError(receiptError);
+    const valid = Object.keys(errors).length === 0 && receiptError == null;
+    if (valid) setStep('spaces');
+    return valid;
   }
 
   /** Adds the reviewed items to each chosen space. Returns true when everything saved. */
@@ -152,7 +166,8 @@ export function useReceiptScan(extractSpaceId: number) {
     try {
       const reference = (await imageReference.current) ?? null;
       const commands = drafts.map(toCommand);
-      const results = await Promise.all(spaceIds.map(id => addExpensesBatch(api, id, commands, reference)));
+      const discount = parseDiscount(receiptDiscount) || 0;
+      const results = await Promise.all(spaceIds.map(id => addExpensesBatch(api, id, commands, reference, discount)));
 
       await Promise.all(spaceIds.map(id => queryClient.invalidateQueries({ queryKey: queryKeys.expenses(id) })));
 
@@ -185,6 +200,8 @@ export function useReceiptScan(extractSpaceId: number) {
     setPhoto(null);
     setDrafts([]);
     setDraftErrors({});
+    setReceiptDiscount('');
+    setReceiptDiscountError(null);
     setPhotoUploadFailed(false);
     imageReference.current = null;
   }
@@ -195,6 +212,8 @@ export function useReceiptScan(extractSpaceId: number) {
     photo,
     drafts,
     draftErrors,
+    receiptDiscount,
+    receiptDiscountError,
     error,
     saving,
     photoUploadFailed,
@@ -202,6 +221,7 @@ export function useReceiptScan(extractSpaceId: number) {
     submitCapturedPhoto,
     reportCaptureError,
     updateDraft,
+    updateReceiptDiscount,
     removeDraft,
     continueToSpaces,
     save,

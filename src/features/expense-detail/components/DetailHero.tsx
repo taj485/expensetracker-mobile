@@ -2,7 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet } from 'react-native';
 
 import type { Expense } from '@/core/models/expense.model';
-import { expenseTotal } from '@/core/utils/expenseUtils';
+import { lineTotalAfterDiscount } from '@/core/utils/discountUtils';
 import { formatMoney } from '@/core/utils/moneyUtils';
 import { AppText } from '@/shared/components/AppText';
 import { CategoryBadge } from '@/shared/components/CategoryBadge';
@@ -14,7 +14,7 @@ interface DetailHeroProps {
   topInset: number;
 }
 
-/** Full-bleed purple header: merchant, line total and category. */
+/** Full-bleed purple header: merchant, line total after its discount, and category. */
 export function DetailHero({ expense, topInset }: DetailHeroProps) {
   return (
     <LinearGradient
@@ -26,7 +26,7 @@ export function DetailHero({ expense, topInset }: DetailHeroProps) {
         {expense.merchant || 'No merchant'}
       </AppText>
       <AppText tone="onBrand" style={displayTypography.amount} numeric adjustsFontSizeToFit numberOfLines={1}>
-        {formatMoney(expenseTotal(expense))}
+        {formatMoney(lineTotalAfterDiscount(expense))}
       </AppText>
       <CategoryBadge category={expense.category} onBrand />
     </LinearGradient>

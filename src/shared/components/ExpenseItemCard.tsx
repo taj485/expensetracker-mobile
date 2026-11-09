@@ -1,6 +1,8 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import type { DraftErrors, DraftExpense } from '@/core/utils/expenseDraft';
+import { lineTotalAfterDiscount } from '@/core/utils/discountUtils';
+import { type DraftErrors, type DraftExpense, toLine } from '@/core/utils/expenseDraft';
+import { formatMoney } from '@/core/utils/moneyUtils';
 import { spacing } from '@/theme';
 
 import { AppText } from './AppText';
@@ -22,6 +24,8 @@ interface ExpenseItemCardProps {
   showDate?: boolean;
   /** Opens the saved expense's own page; omitted for lines that aren't saved yet. */
   onView?: () => void;
+  /** Show the editable "Discount (£)" field and the amount after it (lines of a scanned receipt). */
+  showDiscount?: boolean;
 }
 
 /** One editable line item — used when reviewing a scanned receipt and when editing a saved one. */
@@ -35,7 +39,9 @@ export function ExpenseItemCard({
   showMerchant = true,
   showDate = true,
   onView,
+  showDiscount = false,
 }: ExpenseItemCardProps) {
+  const line = toLine(draft);
   return (
     <Card style={styles.card}>
       <View style={styles.header}>
@@ -83,6 +89,24 @@ export function ExpenseItemCard({
         </View>
       </View>
 
+      {showDiscount && (
+        <View style={styles.discountField}>
+          <TextField
+            label="Discount (£)"
+            value={draft.discount}
+            onChangeText={discount => onChange({ discount })}
+            keyboardType="decimal-pad"
+            placeholder="None"
+            error={errors?.discount}
+          />
+          {line.discount > 0 && !errors?.discount && (
+            <AppText variant="footnote" tone="secondary" numeric>
+              {`${formatMoney(lineTotalAfterDiscount(line))} after discount`}
+            </AppText>
+          )}
+        </View>
+      )}
+
       <View style={styles.categoryField}>
         <AppText variant="footnote" weight="600" tone="secondary">
           Category
@@ -108,4 +132,5 @@ const styles = StyleSheet.create({
   price: { flexGrow: 2, flexBasis: 140 },
   quantity: { flexGrow: 1, flexBasis: 80 },
   categoryField: { gap: 6 },
+  discountField: { gap: spacing['2xs'] },
 });

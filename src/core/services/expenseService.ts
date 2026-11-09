@@ -30,6 +30,11 @@ export function updateExpense(api: ApiClient, tableId: number, id: number, comma
   return api.put<void>(`${tableUrl(tableId)}/${id}`, { id, ...command });
 }
 
+// API CALL: PUT /api/expensetable/{tableId}/expenses/by-receipt/{receiptId}/discount — sets a saved receipt's discount (0 clears it)
+export function updateReceiptDiscount(api: ApiClient, tableId: number, receiptId: number, receiptDiscount: number): Promise<void> {
+  return api.put<void>(`${tableUrl(tableId)}/by-receipt/${receiptId}/discount`, { receiptDiscount });
+}
+
 // API CALL: DELETE /api/expensetable/{tableId}/expenses/{id} — delete an expense
 export function deleteExpense(api: ApiClient, tableId: number, id: number): Promise<void> {
   return api.delete<void>(`${tableUrl(tableId)}/${id}`);
@@ -79,10 +84,12 @@ export function addExpensesBatch(
   tableId: number,
   items: AddExpenseCommand[],
   receiptImageReference: string | null,
+  receiptDiscount = 0,
 ): Promise<AddExpensesBatchResult> {
   return api.post<AddExpensesBatchResult>(`${tableUrl(tableId)}/batch`, {
     expenseTableId: tableId,
     items: items.map(item => ({ ...item, expenseTableId: tableId })),
     receiptImageReference,
+    receiptDiscount,
   });
 }
