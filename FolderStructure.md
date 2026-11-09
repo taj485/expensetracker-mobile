@@ -45,6 +45,7 @@ expensetracker-mobile/
 │   │   │   ├── queryClient.ts
 │   │   │   └── useApiClient.ts
 │   │   ├── auth/
+│   │   │   ├── accountDeletedNotice.ts
 │   │   │   ├── authConfig.ts
 │   │   │   ├── authErrors.ts
 │   │   │   └── useSession.ts
@@ -52,6 +53,7 @@ expensetracker-mobile/
 │   │   │   ├── expense-table.model.ts
 │   │   │   └── expense.model.ts
 │   │   ├── queries/
+│   │   │   ├── accountQueries.ts
 │   │   │   ├── expenseQueries.ts
 │   │   │   ├── queryKeys.ts
 │   │   │   └── spaceQueries.ts
@@ -61,6 +63,7 @@ expensetracker-mobile/
 │   │   │   ├── sampleFile.ts
 │   │   │   └── sampleFile.web.ts
 │   │   ├── services/
+│   │   │   ├── accountService.ts
 │   │   │   ├── expenseService.ts
 │   │   │   └── expenseTableService.ts
 │   │   ├── spaces/

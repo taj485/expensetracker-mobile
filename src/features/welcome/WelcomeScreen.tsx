@@ -5,6 +5,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { useAuth0 } from 'react-native-auth0';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { consumeAccountDeletedNotice } from '@/core/auth/accountDeletedNotice';
 import { AUTH_AUDIENCE, AUTH_SCOPE } from '@/core/auth/authConfig';
 import { isUserCancelled } from '@/core/auth/authErrors';
 import { AppText } from '@/shared/components/AppText';
@@ -23,6 +24,8 @@ export function WelcomeScreen() {
   const { authorize } = useAuth0();
   const [pending, setPending] = useState<AuthMode | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Read once on mount: shown when we got here by deleting the account, gone on the next visit.
+  const [accountDeleted] = useState(consumeAccountDeletedNotice);
 
   async function openAuth(mode: AuthMode) {
     setPending(mode);
@@ -66,6 +69,11 @@ export function WelcomeScreen() {
           </View>
 
           <View style={styles.actions}>
+            {accountDeleted && (
+              <AppText variant="subhead" weight="600" tone="onBrand" style={styles.notice} accessibilityRole="alert">
+                Your account has been deleted.
+              </AppText>
+            )}
             <Button
               title="Get started"
               variant="onBrand"
@@ -116,4 +124,5 @@ const styles = StyleSheet.create({
   features: { gap: spacing.md },
   actions: { gap: spacing.md },
   error: { textAlign: 'center' },
+  notice: { textAlign: 'center' },
 });
