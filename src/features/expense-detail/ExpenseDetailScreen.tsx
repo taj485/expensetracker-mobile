@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDeleteExpense, useExpense } from '@/core/queries/expenseQueries';
 import { useSelectedSpace } from '@/core/spaces/SelectedSpaceProvider';
 import { formatMediumDate } from '@/core/utils/dateUtils';
-import { formatMoney } from '@/core/utils/moneyUtils';
+import { formatDeduction, formatMoney } from '@/core/utils/moneyUtils';
 import { uploaderLabel } from '@/core/utils/uploaderUtils';
 import { ErrorState, LoadingState } from '@/shared/components/QueryState';
 import { KeyValueList } from '@/shared/components/KeyValueList';
@@ -82,6 +82,7 @@ export function ExpenseDetailScreen() {
               { label: 'Date', value: formatMediumDate(expense.date) },
               { label: 'Unit price', value: formatMoney(expense.unitPrice) },
               { label: 'Quantity', value: String(expense.quantity) },
+              ...(expense.discount ? [{ label: 'Discount', value: formatDeduction(expense.discount) }] : []),
               ...(spaceName ? [{ label: 'Space', value: spaceName }] : []),
               ...(addedBy ? [{ label: 'Added by', value: addedBy }] : []),
             ]}

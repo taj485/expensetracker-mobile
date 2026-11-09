@@ -1,12 +1,14 @@
 import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 
-import type { DraftErrors, DraftExpense } from '@/core/utils/expenseDraft';
+import { parseDiscount, receiptBreakdown } from '@/core/utils/discountUtils';
+import { type DraftErrors, type DraftExpense, toLine } from '@/core/utils/expenseDraft';
 import { formatMoney } from '@/core/utils/moneyUtils';
 import { AppText } from '@/shared/components/AppText';
 import { Button } from '@/shared/components/Button';
 import { Card } from '@/shared/components/Card';
 import { ExpenseItemCard } from '@/shared/components/ExpenseItemCard';
+import { TextField } from '@/shared/components/TextField';
 import { radius, spacing } from '@/theme';
 
 import type { ReceiptPhoto } from '../utils/receiptPhoto';
@@ -15,6 +17,10 @@ interface ReviewStepProps {
   photo: ReceiptPhoto | null;
   drafts: DraftExpense[];
   draftErrors: Record<number, DraftErrors>;
+  /** "Receipt discount (£)" field text; empty means none. */
+  receiptDiscount: string;
+  receiptDiscountError: string | null;
+  onReceiptDiscountChange: (text: string) => void;
   error: string | null;
   photoUploadFailed: boolean;
   onChange: (key: number, patch: Partial<DraftExpense>) => void;
@@ -27,6 +33,9 @@ export function ReviewStep({
   photo,
   drafts,
   draftErrors,
+  receiptDiscount,
+  receiptDiscountError,
+  onReceiptDiscountChange,
   error,
   photoUploadFailed,
   onChange,
@@ -35,8 +44,9 @@ export function ReviewStep({
   onRetake,
 }: ReviewStepProps) {
   const count = drafts.length;
-  const total = drafts.reduce((sum, d) => sum + (Number(d.unitPrice) || 0) * (Number(d.quantity) || 0), 0);
-  const hasErrors = Object.keys(draftErrors).length > 0;
+  // What will be paid: after item discounts and the receipt discount, live as fields change.
+  const { total } = receiptBreakdown(drafts.map(toLine), parseDiscount(receiptDiscount) || 0);
+  const hasErrors = Object.keys(draftErrors).length > 0 || receiptDiscountError != null;
 
   return (
     <>
@@ -87,8 +97,20 @@ export function ReviewStep({
           canRemove={count > 1}
           onChange={patch => onChange(draft.key, patch)}
           onRemove={() => onRemove(draft.key)}
+          showDiscount
         />
       ))}
+
+      <Card style={styles.receiptDiscount}>
+        <TextField
+          label="Receipt discount (£)"
+          value={receiptDiscount}
+          onChangeText={onReceiptDiscountChange}
+          keyboardType="decimal-pad"
+          placeholder="None"
+          error={receiptDiscountError ?? undefined}
+        />
+      </Card>
 
       <View style={styles.actions}>
         <Button title="Retake" variant="secondary" onPress={onRetake} style={styles.secondary} />
@@ -103,6 +125,7 @@ const styles = StyleSheet.create({
   summary: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md },
   thumb: { width: 52, height: 66, borderRadius: radius.sm },
   summaryText: { flex: 1, gap: spacing['2xs'] },
+  receiptDiscount: { padding: spacing.base },
   actions: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.sm },
   secondary: { flex: 1 },
   primary: { flex: 2 },

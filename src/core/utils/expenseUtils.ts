@@ -1,5 +1,7 @@
 import type { Expense } from '@/core/models/expense.model';
 
+import { paidTotal } from './discountUtils';
+
 // Ported from the web client (core/utils/expense.utils.ts).
 /** Line total for an expense: unit price x quantity, rounded to whole pence. */
 export function expenseTotal(expense: { unitPrice: number; quantity: number }): number {
@@ -17,6 +19,7 @@ export interface ReceiptGroup {
   merchantWebsite: string | null;
   date: string;
   receiptId: number | null;
+  /** What was paid: after item discounts and the receipt discount. */
   total: number;
   /** Who added the receipt (every line of a scanned receipt is added together, by one person). */
   createdByEmail: string | null;
@@ -50,7 +53,7 @@ export function groupByReceipt(expenses: Expense[]): ReceiptGroup[] {
         merchantWebsite: first.merchantWebsite,
         date: first.date,
         receiptId: first.receiptId,
-        total: sumExpenses(items),
+        total: paidTotal(items),
         // `?? null` / `=== true`: an API deployed before uploaders existed omits these fields.
         createdByEmail: first.createdByEmail ?? null,
         createdByCurrentUser: first.createdByCurrentUser === true,

@@ -6,7 +6,8 @@ import { useSpaceExpenses } from '@/core/queries/expenseQueries';
 import { useToggleStar } from '@/core/queries/spaceQueries';
 import { useSelectedSpace } from '@/core/spaces/SelectedSpaceProvider';
 import { monthKeyOf, monthKeysBack } from '@/core/utils/dateUtils';
-import { groupByReceipt, sumExpenses } from '@/core/utils/expenseUtils';
+import { paidTotal } from '@/core/utils/discountUtils';
+import { groupByReceipt } from '@/core/utils/expenseUtils';
 import { formatMoney } from '@/core/utils/moneyUtils';
 import { EmptyState, ErrorState, LoadingState } from '@/shared/components/QueryState';
 import { StatTile } from '@/shared/components/StatTile';
@@ -125,7 +126,7 @@ export function ExpensesScreen() {
               onClear={() => setFilter({ categories: [] })}
             />
             <View style={styles.stats}>
-              <StatTile label={totalLabel(months.length)} value={formatMoney(sumExpenses(filtered))} highlight />
+              <StatTile label={totalLabel(months.length)} value={formatMoney(paidTotal(filtered))} highlight />
               <StatTile label="Entries" value={String(filtered.length)} />
             </View>
             <SearchField

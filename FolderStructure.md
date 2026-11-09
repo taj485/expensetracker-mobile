@@ -68,6 +68,7 @@ expensetracker-mobile/
 │   │   └── utils/
 │   │       ├── categoryUtils.ts
 │   │       ├── dateUtils.ts
+│   │       ├── discountUtils.ts
 │   │       ├── expenseDraft.ts
 │   │       ├── expenseUtils.ts
 │   │       ├── formDataFile.ts
@@ -171,6 +172,7 @@ expensetracker-mobile/
 │   │   │   ├── KeyValueList.tsx
 │   │   │   ├── MerchantLogo.tsx
 │   │   │   ├── QueryState.tsx
+│   │   │   ├── ReceiptBreakdownRows.tsx
 │   │   │   ├── SearchField.tsx
 │   │   │   ├── Screen.tsx
 │   │   │   ├── SectionHeader.tsx

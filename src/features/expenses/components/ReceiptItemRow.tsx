@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import type { Expense } from '@/core/models/expense.model';
-import { expenseTotal } from '@/core/utils/expenseUtils';
+import { lineTotalAfterDiscount } from '@/core/utils/discountUtils';
 import { formatMoney } from '@/core/utils/moneyUtils';
 import { AppText } from '@/shared/components/AppText';
 import { CategoryBadge } from '@/shared/components/CategoryBadge';
@@ -15,7 +15,7 @@ interface ReceiptItemRowProps {
 
 export function ReceiptItemRow({ expense, isLast, onPress }: ReceiptItemRowProps) {
   const styles = useThemedStyles(createStyles);
-  const total = formatMoney(expenseTotal(expense));
+  const total = formatMoney(lineTotalAfterDiscount(expense));
 
   return (
     <Pressable
