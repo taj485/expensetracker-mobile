@@ -166,7 +166,8 @@ export function useReceiptScan(extractSpaceId: number) {
     try {
       const reference = (await imageReference.current) ?? null;
       const commands = drafts.map(toCommand);
-      const results = await Promise.all(spaceIds.map(id => addExpensesBatch(api, id, commands, reference, parseDiscount(receiptDiscount) || 0)));
+      const discount = parseDiscount(receiptDiscount) || 0;
+      const results = await Promise.all(spaceIds.map(id => addExpensesBatch(api, id, commands, reference, discount)));
 
       await Promise.all(spaceIds.map(id => queryClient.invalidateQueries({ queryKey: queryKeys.expenses(id) })));
 
