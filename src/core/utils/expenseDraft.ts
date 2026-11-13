@@ -6,7 +6,13 @@ import type {
   UpdateExpenseCommand,
 } from '@/core/models/expense.model';
 import { todayLocalISODate } from '@/core/utils/dateUtils';
-import { discountText, INVALID_DISCOUNT, itemDiscountError, parseDiscount } from '@/core/utils/discountUtils';
+import {
+  combinedItemDiscount,
+  discountText,
+  INVALID_DISCOUNT,
+  itemDiscountError,
+  parseDiscount,
+} from '@/core/utils/discountUtils';
 
 /**
  * An expense being entered or reviewed — the Add expense form, or a line item read off a
@@ -75,6 +81,17 @@ export function toDraft(item: ExtractedExpense): DraftExpense {
     discount: discountText(item.discount),
     date: item.date.slice(0, 10),
   };
+}
+
+/**
+ * The draft with a receipt discount (field text) added onto its own "Discount (£)", for a receipt
+ * left with one item. Item text that isn't a number counts as 0, as in the live total; a receipt
+ * discount that is empty or not a number leaves the draft as it is.
+ */
+export function withReceiptDiscount(draft: DraftExpense, receiptDiscount: string): DraftExpense {
+  const receipt = parseDiscount(receiptDiscount);
+  if (!receipt) return draft;
+  return { ...draft, discount: discountText(combinedItemDiscount(parseDiscount(draft.discount) || 0, receipt)) };
 }
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;

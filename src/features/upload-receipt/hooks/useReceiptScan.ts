@@ -7,7 +7,15 @@ import { isSessionEnded } from '@/core/auth/authErrors';
 import { queryKeys } from '@/core/queries/queryKeys';
 import { addExpensesBatch, extractReceipt, uploadReceiptImage } from '@/core/services/expenseService';
 import { discountText, parseDiscount, receiptDiscountTextError } from '@/core/utils/discountUtils';
-import { type DraftErrors, type DraftExpense, toCommand, toDraft, toLine, validateDraft } from '@/core/utils/expenseDraft';
+import {
+  type DraftErrors,
+  type DraftExpense,
+  toCommand,
+  toDraft,
+  toLine,
+  validateDraft,
+  withReceiptDiscount,
+} from '@/core/utils/expenseDraft';
 import { confirm } from '@/shared/utils/confirm';
 
 import {
@@ -102,9 +110,16 @@ export function useReceiptScan(extractSpaceId: number) {
         reset();
         return;
       }
-      setDrafts(items.map(toDraft));
+      const scannedReceiptDiscount = discountText(items[0].receiptDiscount);
       setDraftErrors({});
-      setReceiptDiscount(discountText(items[0].receiptDiscount));
+      if (items.length === 1) {
+        // A one-item receipt keeps every discount on the item, whatever the API returned (PL-007).
+        setDrafts([withReceiptDiscount(toDraft(items[0]), scannedReceiptDiscount)]);
+        setReceiptDiscount('');
+      } else {
+        setDrafts(items.map(toDraft));
+        setReceiptDiscount(scannedReceiptDiscount);
+      }
       setReceiptDiscountError(null);
       setStep('review');
       // A failed image upload shouldn't block saving the expenses themselves — they're saved
@@ -143,7 +158,15 @@ export function useReceiptScan(extractSpaceId: number) {
   }
 
   function removeDraft(key: number) {
-    setDrafts(list => list.filter(d => d.key !== key));
+    const remaining = drafts.filter(d => d.key !== key);
+    if (remaining.length === 1 && receiptDiscount) {
+      // Down to one item: the receipt discount moves onto it, so the total doesn't change.
+      setDrafts([withReceiptDiscount(remaining[0], receiptDiscount)]);
+      setReceiptDiscount('');
+      setReceiptDiscountError(null);
+      return;
+    }
+    setDrafts(remaining);
   }
 
   /** Validates every item; moves on to choosing spaces only if all are valid. */

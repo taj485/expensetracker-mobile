@@ -14,6 +14,7 @@ import {
   toLine,
   toUpdateCommand,
   validateDraft,
+  withReceiptDiscount,
 } from '@/core/utils/expenseDraft';
 
 /** Whether a line's command differs from what is saved, so it needs a PUT. */
@@ -56,12 +57,18 @@ export function useEditReceipt(spaceId: number, originals: Expense[]) {
   const queryClient = useQueryClient();
 
   const [merchant, setMerchant] = useState(() => originals[0]?.merchant ?? '');
-  const [drafts, setDrafts] = useState<DraftExpense[]>(() => originals.map(fromExpense));
-  const [errors, setErrors] = useState<Record<number, DraftErrors>>({});
   // Only scanned receipts have a receipt discount; manual expenses have no receipt id.
   const receiptId = originals[0]?.receiptId ?? null;
   const savedReceiptDiscount = originals[0]?.receiptDiscount ?? 0;
-  const [receiptDiscount, setReceiptDiscountText] = useState(() => discountText(savedReceiptDiscount));
+  // A one-item receipt saved earlier with a receipt discount shows it on the item; saving stores it there (PL-007).
+  const foldOnOpen = receiptId != null && originals.length === 1 && savedReceiptDiscount !== 0;
+  const [drafts, setDrafts] = useState<DraftExpense[]>(() =>
+    foldOnOpen
+      ? [withReceiptDiscount(fromExpense(originals[0]), discountText(savedReceiptDiscount))]
+      : originals.map(fromExpense),
+  );
+  const [errors, setErrors] = useState<Record<number, DraftErrors>>({});
+  const [receiptDiscount, setReceiptDiscountText] = useState(() => (foldOnOpen ? '' : discountText(savedReceiptDiscount)));
   const [receiptDiscountError, setReceiptDiscountError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -83,7 +90,15 @@ export function useEditReceipt(spaceId: number, originals: Expense[]) {
   }
 
   function remove(key: number) {
-    setDrafts(current => current.filter(d => d.key !== key));
+    const remaining = drafts.filter(d => d.key !== key);
+    if (receiptId != null && remaining.length === 1 && receiptDiscount) {
+      // Down to one item: the receipt discount moves onto it, and "Save" clears it on the receipt.
+      setDrafts([withReceiptDiscount(remaining[0], receiptDiscount)]);
+      setReceiptDiscountText('');
+      setReceiptDiscountError(null);
+    } else {
+      setDrafts(remaining);
+    }
     setErrors(current => {
       const next = { ...current };
       delete next[key];

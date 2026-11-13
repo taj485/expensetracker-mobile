@@ -101,16 +101,19 @@ export function ReviewStep({
         />
       ))}
 
-      <Card style={styles.receiptDiscount}>
-        <TextField
-          label="Receipt discount (£)"
-          value={receiptDiscount}
-          onChangeText={onReceiptDiscountChange}
-          keyboardType="decimal-pad"
-          placeholder="None"
-          error={receiptDiscountError ?? undefined}
-        />
-      </Card>
+      {count > 1 && (
+        // A one-item receipt keeps its discounts on the item (PL-007).
+        <Card style={styles.receiptDiscount}>
+          <TextField
+            label="Receipt discount (£)"
+            value={receiptDiscount}
+            onChangeText={onReceiptDiscountChange}
+            keyboardType="decimal-pad"
+            placeholder="None"
+            error={receiptDiscountError ?? undefined}
+          />
+        </Card>
+      )}
 
       <View style={styles.actions}>
         <Button title="Retake" variant="secondary" onPress={onRetake} style={styles.secondary} />
