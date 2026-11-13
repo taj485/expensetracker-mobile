@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { apiErrorMessage } from '@/core/api/apiErrors';
 import { useApiClient } from '@/core/api/useApiClient';
 import { isSessionEnded } from '@/core/auth/authErrors';
+import type { ExtractedExpense } from '@/core/models/expense.model';
 import { queryKeys } from '@/core/queries/queryKeys';
 import { addExpensesBatch, extractReceipt, uploadReceiptImage } from '@/core/services/expenseService';
 import { discountText, parseDiscount, receiptDiscountTextError } from '@/core/utils/discountUtils';
@@ -13,6 +14,7 @@ import {
   toCommand,
   toDraft,
   toLine,
+  foldIntoSingleItem,
   validateDraft,
   withReceiptDiscount,
 } from '@/core/utils/expenseDraft';
@@ -43,6 +45,13 @@ function explainSessionEnded() {
  * Receipt scanning flow, mirroring the web upload-receipt component:
  * photo → shrink to JPEG → extract line items → review/edit → pick spaces → batch save.
  */
+/** The review drafts and receipt-discount text for a scan. A one-item receipt keeps every discount on the item, whatever the API returned (PL-007). */
+function draftsFromScan(items: ExtractedExpense[]): { drafts: DraftExpense[]; receiptDiscount: string } {
+  const receiptDiscount = discountText(items[0].receiptDiscount);
+  if (items.length !== 1) return { drafts: items.map(toDraft), receiptDiscount };
+  return { drafts: [withReceiptDiscount(toDraft(items[0]), receiptDiscount)], receiptDiscount: '' };
+}
+
 export function useReceiptScan(extractSpaceId: number) {
   const api = useApiClient();
   const queryClient = useQueryClient();
@@ -110,16 +119,10 @@ export function useReceiptScan(extractSpaceId: number) {
         reset();
         return;
       }
-      const scannedReceiptDiscount = discountText(items[0].receiptDiscount);
+      const scanned = draftsFromScan(items);
       setDraftErrors({});
-      if (items.length === 1) {
-        // A one-item receipt keeps every discount on the item, whatever the API returned (PL-007).
-        setDrafts([withReceiptDiscount(toDraft(items[0]), scannedReceiptDiscount)]);
-        setReceiptDiscount('');
-      } else {
-        setDrafts(items.map(toDraft));
-        setReceiptDiscount(scannedReceiptDiscount);
-      }
+      setDrafts(scanned.drafts);
+      setReceiptDiscount(scanned.receiptDiscount);
       setReceiptDiscountError(null);
       setStep('review');
       // A failed image upload shouldn't block saving the expenses themselves — they're saved
@@ -159,9 +162,10 @@ export function useReceiptScan(extractSpaceId: number) {
 
   function removeDraft(key: number) {
     const remaining = drafts.filter(d => d.key !== key);
-    if (remaining.length === 1 && receiptDiscount) {
+    const folded = foldIntoSingleItem(remaining, receiptDiscount);
+    if (folded) {
       // Down to one item: the receipt discount moves onto it, so the total doesn't change.
-      setDrafts([withReceiptDiscount(remaining[0], receiptDiscount)]);
+      setDrafts(folded);
       setReceiptDiscount('');
       setReceiptDiscountError(null);
       return;

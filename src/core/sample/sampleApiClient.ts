@@ -1,6 +1,6 @@
 import { ApiError, type ApiClient, type DownloadedFile } from '@/core/api/apiClient';
 import type { CreateExpenseTableCommand } from '@/core/models/expense-table.model';
-import type { AddExpenseCommand, Expense, UpdateExpenseCommand } from '@/core/models/expense.model';
+import type { AddExpenseCommand, Expense, ExtractedExpense, UpdateExpenseCommand } from '@/core/models/expense.model';
 
 import { combinedItemDiscount, itemDiscountError, receiptDiscountError } from '@/core/utils/discountUtils';
 
@@ -29,6 +29,13 @@ function spaceExpenses(spaceId: number) {
   const expenses = store.expensesBySpace.get(spaceId);
   if (!expenses) throw new ApiError(404, `Sample data: space ${spaceId} not found`);
   return expenses;
+}
+
+/** Like the API (PL-006): a one-item receipt comes back with every discount on the item. */
+function foldOneItemScan(extracted: ExtractedExpense[]): ExtractedExpense[] {
+  if (extracted.length !== 1) return extracted;
+  const [only] = extracted;
+  return [{ ...only, discount: combinedItemDiscount(only.discount, only.receiptDiscount), receiptDiscount: 0 }];
 }
 
 async function handle(method: string, path: string, body?: unknown): Promise<unknown> {
@@ -121,11 +128,7 @@ async function handle(method: string, path: string, body?: unknown): Promise<unk
     if (method === 'POST' && action === 'extract-receipt') {
       // Reading a receipt takes a moment for real; make the progress state visible.
       await new Promise(resolve => setTimeout(resolve, 1200));
-      const extracted = sampleExtraction();
-      // Like the API (PL-006): a one-item receipt comes back with every discount on the item.
-      if (extracted.length !== 1) return extracted;
-      const [only] = extracted;
-      return [{ ...only, discount: combinedItemDiscount(only.discount, only.receiptDiscount), receiptDiscount: 0 }];
+      return foldOneItemScan(sampleExtraction());
     }
     if (method === 'POST' && action === 'receipt-image') {
       return { imageReference: `sample/receipt-${Date.now()}.jpg` };

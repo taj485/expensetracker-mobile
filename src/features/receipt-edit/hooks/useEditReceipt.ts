@@ -9,6 +9,7 @@ import { discountText, parseDiscount, receiptDiscountTextError } from '@/core/ut
 import {
   type DraftErrors,
   type DraftExpense,
+  foldIntoSingleItem,
   fromExpense,
   hasErrors,
   toLine,
@@ -91,9 +92,10 @@ export function useEditReceipt(spaceId: number, originals: Expense[]) {
 
   function remove(key: number) {
     const remaining = drafts.filter(d => d.key !== key);
-    if (receiptId != null && remaining.length === 1 && receiptDiscount) {
+    const folded = receiptId != null ? foldIntoSingleItem(remaining, receiptDiscount) : null;
+    if (folded) {
       // Down to one item: the receipt discount moves onto it, and "Save" clears it on the receipt.
-      setDrafts([withReceiptDiscount(remaining[0], receiptDiscount)]);
+      setDrafts(folded);
       setReceiptDiscountText('');
       setReceiptDiscountError(null);
     } else {

@@ -94,6 +94,15 @@ export function withReceiptDiscount(draft: DraftExpense, receiptDiscount: string
   return { ...draft, discount: discountText(combinedItemDiscount(parseDiscount(draft.discount) || 0, receipt)) };
 }
 
+/**
+ * When removal leaves exactly one draft and a receipt discount is set, the single draft carrying
+ * that discount; otherwise null (nothing to move).
+ */
+export function foldIntoSingleItem(remaining: DraftExpense[], receiptDiscount: string): DraftExpense[] | null {
+  if (remaining.length !== 1 || !receiptDiscount) return null;
+  return [withReceiptDiscount(remaining[0], receiptDiscount)];
+}
+
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 export function validateDraft(draft: DraftExpense): DraftErrors {
