@@ -8,12 +8,13 @@ import { SheetHandle } from '@/shared/components/SheetHandle';
 import { spacing, type Theme, useThemedStyles } from '@/theme';
 
 import { CaptureStep } from './components/CaptureStep';
+import { ConsentGate } from './components/ConsentGate';
 import { ReadingStep } from './components/ReadingStep';
 import { ReviewStep } from './components/ReviewStep';
 import { useConfirmDiscardDrafts } from './hooks/useConfirmDiscardDrafts';
 import { useReceiptScan } from './hooks/useReceiptScan';
 
-/** Scan sheet: photo → AI extraction → review → choose spaces → save. */
+/** Scan sheet: AI consent (until given) → photo → AI extraction → review → choose spaces → save. */
 export function ScanReceiptSheet() {
   const styles = useThemedStyles(createStyles);
   const { selectedSpace } = useSelectedSpace();
@@ -30,7 +31,9 @@ export function ScanReceiptSheet() {
       // Keeps focused price/date fields above the keyboard inside the sheet.
       automaticallyAdjustKeyboardInsets>
       <SheetHandle />
-      <ScanFlow spaceId={selectedSpace.id} />
+      <ConsentGate>
+        <ScanFlow spaceId={selectedSpace.id} />
+      </ConsentGate>
     </ScrollView>
   );
 }

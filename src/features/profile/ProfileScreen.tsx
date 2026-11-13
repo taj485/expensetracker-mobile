@@ -1,11 +1,11 @@
 import Constants from 'expo-constants';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 
 import { env } from '@/config/env';
 import { isUserCancelled } from '@/core/auth/authErrors';
 import { useSession } from '@/core/auth/useSession';
-import { useDeleteAccount } from '@/core/queries/accountQueries';
+import { useAiReceiptConsent, useDeleteAccount, useWithdrawAiReceiptConsent } from '@/core/queries/accountQueries';
 import { useSelectedSpace } from '@/core/spaces/SelectedSpaceProvider';
 import { AppText } from '@/shared/components/AppText';
 import { Avatar } from '@/shared/components/Avatar';
@@ -22,6 +22,9 @@ export function ProfileScreen() {
   const [signingOut, setSigningOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const deleteAccount = useDeleteAccount();
+  const aiConsent = useAiReceiptConsent();
+  const withdrawAiConsent = useWithdrawAiReceiptConsent();
+  const aiConsentGiven = aiConsent.data?.given === true;
 
   async function signOut() {
     setSigningOut(true);
@@ -52,6 +55,23 @@ export function ProfileScreen() {
     }
   }
 
+  async function confirmTurnOffAiReading() {
+    // Consent is given from the scan sheet, so the row does nothing while it's off.
+    if (!aiConsentGiven || withdrawAiConsent.isPending) return;
+    const confirmed = await confirm({
+      title: 'Turn off AI receipt reading?',
+      message: "Recave will stop sending receipt photos to Google Gemini. You'll be asked again the next time you scan.",
+      confirmLabel: 'Turn off',
+      destructive: true,
+    });
+    if (confirmed) {
+      withdrawAiConsent.mutate(undefined, {
+        onError: () =>
+          Alert.alert("Couldn't turn off AI receipt reading. Check your connection and try again."),
+      });
+    }
+  }
+
   return (
     <ScrollScreen>
       <Card style={styles.account}>
@@ -67,6 +87,11 @@ export function ProfileScreen() {
       <KeyValueList
         items={[
           { label: 'Spaces', value: String(spaces.length) },
+          {
+            label: 'AI receipt reading',
+            value: aiConsent.data ? (aiConsentGiven ? 'Allowed' : 'Off') : '—',
+            onPress: confirmTurnOffAiReading,
+          },
           { label: 'Version', value: Constants.expoConfig?.version ?? '—' },
           ...(env.useSampleData ? [{ label: 'Data', value: 'Sample data' }] : []),
         ]}

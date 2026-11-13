@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 
 import { spacing, type Theme, useThemedStyles } from '@/theme';
 
@@ -8,6 +8,8 @@ import { Card } from './Card';
 export interface KeyValueItem {
   label: string;
   value: string;
+  /** Makes the row tappable. */
+  onPress?: () => void;
 }
 
 interface KeyValueListProps {
@@ -21,18 +23,21 @@ export function KeyValueList({ items }: KeyValueListProps) {
   return (
     <Card>
       {items.map((item, index) => (
-        <View
+        <Pressable
           key={item.label}
           accessible
+          accessibilityRole={item.onPress ? 'button' : undefined}
           accessibilityLabel={`${item.label}: ${item.value}`}
-          style={[styles.row, index < items.length - 1 && styles.divider]}>
+          onPress={item.onPress}
+          disabled={!item.onPress}
+          style={({ pressed }) => [styles.row, index < items.length - 1 && styles.divider, pressed && styles.pressed]}>
           <AppText variant="subhead" tone="secondary">
             {item.label}
           </AppText>
           <AppText variant="subhead" weight="600" style={styles.value}>
             {item.value}
           </AppText>
-        </View>
+        </Pressable>
       ))}
     </Card>
   );
@@ -50,6 +55,7 @@ const createStyles = ({ colors }: Theme) =>
       paddingVertical: spacing.md,
       paddingHorizontal: spacing.base,
     },
+    pressed: { backgroundColor: colors.bgSurfaceAlt },
     divider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.borderDefault },
     // Wraps under the label at large Dynamic Type sizes instead of truncating.
     value: { flexShrink: 1, textAlign: 'right' },

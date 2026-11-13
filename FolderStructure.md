@@ -50,6 +50,7 @@ expensetracker-mobile/
 │   │   │   ├── authErrors.ts
 │   │   │   └── useSession.ts
 │   │   ├── models/
+│   │   │   ├── account.model.ts
 │   │   │   ├── expense-table.model.ts
 │   │   │   └── expense.model.ts
 │   │   ├── queries/
@@ -139,6 +140,8 @@ expensetracker-mobile/
 │   │   │   │   ├── CameraPreview.tsx
 │   │   │   │   ├── CaptureGuide.tsx
 │   │   │   │   ├── CaptureStep.tsx
+│   │   │   │   ├── ConsentGate.tsx
+│   │   │   │   ├── ConsentStep.tsx
 │   │   │   │   ├── ReadingStep.tsx
 │   │   │   │   ├── ReceiptFrame.tsx
 │   │   │   │   └── ReviewStep.tsx
