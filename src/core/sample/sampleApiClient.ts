@@ -1,8 +1,8 @@
 import { ApiError, type ApiClient, type DownloadedFile } from '@/core/api/apiClient';
 import type { CreateExpenseTableCommand } from '@/core/models/expense-table.model';
-import type { AddExpenseCommand, Expense, UpdateExpenseCommand } from '@/core/models/expense.model';
+import type { AddExpenseCommand, Expense, ExtractedExpense, UpdateExpenseCommand } from '@/core/models/expense.model';
 
-import { itemDiscountError, receiptDiscountError } from '@/core/utils/discountUtils';
+import { combinedItemDiscount, itemDiscountError, receiptDiscountError } from '@/core/utils/discountUtils';
 
 import { createSampleStore, SAMPLE_USER, SAMPLE_USER_ID, sampleExtraction } from './sampleData';
 import { sampleFile } from './sampleFile';
@@ -29,6 +29,13 @@ function spaceExpenses(spaceId: number) {
   const expenses = store.expensesBySpace.get(spaceId);
   if (!expenses) throw new ApiError(404, `Sample data: space ${spaceId} not found`);
   return expenses;
+}
+
+/** Like the API (PL-006): a one-item receipt comes back with every discount on the item. */
+function foldOneItemScan(extracted: ExtractedExpense[]): ExtractedExpense[] {
+  if (extracted.length !== 1) return extracted;
+  const [only] = extracted;
+  return [{ ...only, discount: combinedItemDiscount(only.discount, only.receiptDiscount), receiptDiscount: 0 }];
 }
 
 async function handle(method: string, path: string, body?: unknown): Promise<unknown> {
@@ -121,7 +128,7 @@ async function handle(method: string, path: string, body?: unknown): Promise<unk
     if (method === 'POST' && action === 'extract-receipt') {
       // Reading a receipt takes a moment for real; make the progress state visible.
       await new Promise(resolve => setTimeout(resolve, 1200));
-      return sampleExtraction();
+      return foldOneItemScan(sampleExtraction());
     }
     if (method === 'POST' && action === 'receipt-image') {
       return { imageReference: `sample/receipt-${Date.now()}.jpg` };
@@ -143,9 +150,9 @@ async function handle(method: string, path: string, body?: unknown): Promise<unk
         merchantId: null,
         merchant: item.merchant,
         merchantWebsite: null,
-        receiptId: items.length > 1 ? receiptId : null,
-        discount: item.discount ?? 0,
-        // A one-item sample receipt has no receipt id, so its receipt discount has nowhere to go (story Q4).
+        receiptId,
+        // Like the API (PL-006): a one-item receipt stores the receipt discount on its item.
+        discount: items.length > 1 ? (item.discount ?? 0) : combinedItemDiscount(item.discount, receiptDiscount),
         receiptDiscount: items.length > 1 ? receiptDiscount : 0,
         // Like the API, the uploader is whoever made the request.
         createdByEmail: SAMPLE_USER.email,

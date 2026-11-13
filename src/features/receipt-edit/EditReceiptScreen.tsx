@@ -102,7 +102,8 @@ function EditReceiptForm({ spaceId, originals }: { spaceId: number; originals: E
           </AppText>
         </View>
         <ReceiptBreakdownRows breakdown={breakdown} />
-        {hasDiscounts && (
+        {hasDiscounts && count > 1 && (
+          // A one-item receipt keeps its discounts on the item (PL-007).
           <TextField
             label="Receipt discount (£)"
             value={edit.receiptDiscount}

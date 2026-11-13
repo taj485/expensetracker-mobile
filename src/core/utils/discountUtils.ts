@@ -62,6 +62,14 @@ export function paidTotal(lines: PaidLine[]): number {
   return roundPence(total);
 }
 
+/**
+ * A one-item receipt keeps every discount on its item: the item's own discount plus the receipt
+ * discount, to the penny. Not capped; validation reports a total over the line total.
+ */
+export function combinedItemDiscount(itemDiscount: number | null | undefined, receiptDiscount: number | null | undefined): number {
+  return roundPence((itemDiscount ?? 0) + (receiptDiscount ?? 0));
+}
+
 /** Validation message for an item discount, or null when it is fine. */
 export function itemDiscountError(line: DiscountableLine): string | null {
   const discount = line.discount ?? 0;
