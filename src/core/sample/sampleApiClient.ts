@@ -1,4 +1,5 @@
 import { ApiError, type ApiClient, type DownloadedFile } from '@/core/api/apiClient';
+import { AI_RECEIPT_CONSENT_VERSION } from '@/core/models/account.model';
 import type { CreateExpenseTableCommand } from '@/core/models/expense-table.model';
 import type { AddExpenseCommand, Expense, ExtractedExpense, UpdateExpenseCommand } from '@/core/models/expense.model';
 
@@ -12,6 +13,9 @@ import { sampleFile } from './sampleFile';
 // route is obvious. Data resets when the app reloads.
 
 const store = createSampleStore();
+
+/** AI receipt reading consent for the sample account; starts as not given and resets on reload. */
+let aiReceiptConsent: { version: number; givenAt: string } | null = null;
 
 /** Enough delay to see loading states, short enough not to get in the way. */
 const LATENCY_MS = 350;
@@ -41,6 +45,9 @@ function foldOneItemScan(extracted: ExtractedExpense[]): ExtractedExpense[] {
 async function handle(method: string, path: string, body?: unknown): Promise<unknown> {
   await wait();
   const segments = path.split('/').filter(Boolean); // e.g. ['expensetable', '1', 'expenses', '1004']
+  if (segments[0] === 'account' && segments[1] === 'ai-receipt-consent' && segments.length === 2) {
+    return handleAiReceiptConsent(method, body);
+  }
   if (segments[0] !== 'expensetable') notFound(method, path);
 
   const spaceId = segments[1] != null ? Number(segments[1]) : null;
@@ -229,6 +236,29 @@ async function handle(method: string, path: string, body?: unknown): Promise<unk
   }
 
   notFound(method, path);
+}
+
+/** /account/ai-receipt-consent, with the same rules as the API. */
+function handleAiReceiptConsent(method: string, body: unknown): unknown {
+  if (method === 'GET') {
+    return aiReceiptConsent
+      ? { given: true, version: aiReceiptConsent.version, givenAt: aiReceiptConsent.givenAt }
+      : { given: false, version: null, givenAt: null };
+  }
+  if (method === 'PUT') {
+    const { version } = body as { version: number };
+    if (version !== AI_RECEIPT_CONSENT_VERSION) {
+      throw new ApiError(400, JSON.stringify({ error: 'This consent text is out of date. Please update the app.' }));
+    }
+    // Giving it again keeps the original date.
+    aiReceiptConsent ??= { version, givenAt: new Date().toISOString() };
+    return undefined;
+  }
+  if (method === 'DELETE') {
+    aiReceiptConsent = null;
+    return undefined;
+  }
+  notFound(method, '/account/ai-receipt-consent');
 }
 
 export const sampleApiClient: ApiClient = {
